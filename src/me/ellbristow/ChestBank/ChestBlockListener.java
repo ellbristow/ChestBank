@@ -68,6 +68,12 @@ public class ChestBlockListener extends BlockListener {
 						if (oldBlockX + 1 == blockX || oldBlockX - 1 == blockX || oldBlockZ + 1 == blockZ || oldBlockZ - 1 == blockZ) {
 							newBankList += ":" + blockX + ":" + blockY + ":" + blockZ;
 						}
+						else if (blockLoc.length == 6) {
+							oldBlockX = Integer.parseInt(blockLoc[3]);
+							oldBlockY = Integer.parseInt(blockLoc[4]);
+							oldBlockZ = Integer.parseInt(blockLoc[5]);
+							newBankList += ":" + oldBlockX + ":" + oldBlockY + ":" + oldBlockZ;
+						}
 					}
 					plugin.chestBanks.set("banks", newBankList);
 					plugin.saveChestBanks();
