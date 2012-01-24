@@ -53,7 +53,7 @@ public class ChestBlockListener extends BlockListener {
 			if (plugin.isBankBlock(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ)) || plugin.isBankBlock(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ)) || plugin.isBankBlock(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1)) || plugin.isBankBlock(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1))) {
 				Player player = event.getPlayer();
 				if (player.hasPermission("chestbank.create")) {
-					String bankList = plugin.chestBanks.getString("banks", "");
+					String bankList = plugin.banksConfig.getString("banks", "");
 					String[] bankSplit = bankList.split(";");
 					String newBankList = "";
 					for (String bankBlock : bankSplit) {
@@ -75,7 +75,7 @@ public class ChestBlockListener extends BlockListener {
 							newBankList += ":" + oldBlockX + ":" + oldBlockY + ":" + oldBlockZ;
 						}
 					}
-					plugin.chestBanks.set("banks", newBankList);
+					plugin.banksConfig.set("banks", newBankList);
 					plugin.saveChestBanks();
 					player.sendMessage(ChatColor.GOLD + "Chest added to ChestBank!");
 				}

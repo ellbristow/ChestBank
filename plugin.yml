@@ -1,6 +1,6 @@
 name: ChestBank
 main: me.ellbristow.ChestBank.ChestBank
-version: 0.1
+version: 1.0
 author: ellbristow
 description: >
              Create a private account in a chest, accessible from any other ChestBank.

@@ -2,17 +2,25 @@ package me.ellbristow.ChestBank;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.minecraft.server.Enchantment;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.InventoryLargeChest;
+import net.minecraft.server.ItemStack;
+import net.minecraft.server.NBTTagCompound;
+import net.minecraft.server.NBTTagList;
+import net.minecraft.server.TileEntityChest;
 
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -26,14 +34,15 @@ public class ChestBank extends JavaPlugin {
 	
 	public static ChestBank plugin;
 	public final Logger logger = Logger.getLogger("Minecraft");
-	public FileConfiguration chestBanks = null;
+	public FileConfiguration banksConfig = null;
 	private File bankFile = null;
 	public final ChestBlockListener blockListener = new ChestBlockListener(this);
 	public ChestPlayerListener chestListener;
+	public HashMap<String, InventoryLargeChest> chestBanks;
 
 	@Override
 	public void onDisable () {
-		chestListener.save();
+		setChests(chestBanks);
 		PluginDescriptionFile pdfFile = this.getDescription();
 		logger.info( "[" + pdfFile.getName() + "] is now disabled.");
 	}
@@ -43,18 +52,18 @@ public class ChestBank extends JavaPlugin {
 		PluginDescriptionFile pdfFile = this.getDescription();
 		PluginManager pm = getServer().getPluginManager();
 		logger.info("[" + pdfFile.getName() + "] version " + pdfFile.getVersion() + " is now enabled." );
-		chestListener = new ChestPlayerListener(this, new File(getDataFolder(), "accounts"));
+		chestListener = new ChestPlayerListener(this);
 		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.BLOCK_IGNITE, blockListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, chestListener, Event.Priority.Normal, this);
-		chestBanks = getChestBanks();
+		banksConfig = getChestBanks();
 		saveChestBanks();
-		chestListener.load();
+		chestBanks = getChests();
 		int autosaveInterval = 5 * 3000;
 		getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {
-				chestListener.save();
+				setChests(chestBanks);
 				logger.fine("[ChestBank] auto-saved ChestBanks");
 			}
 		}, autosaveInterval, autosaveInterval);
@@ -107,7 +116,7 @@ public class ChestBank extends JavaPlugin {
 					player.sendMessage(ChatColor.RED + "That is already a ChestBank!");
 					return true;
 				}
-				String bankList = chestBanks.getString("banks", "");
+				String bankList = banksConfig.getString("banks", "");
 				if (bankList == "") {
 					bankList += block.getX() + ":" + block.getY() + ":" + block.getZ();
 				}
@@ -118,7 +127,7 @@ public class ChestBank extends JavaPlugin {
 				if (doubleChest != null) {
 					bankList += ":" + doubleChest.getX() + ":" + doubleChest.getY() + ":" + doubleChest.getZ();
 				}
-				chestBanks.set("banks", bankList);
+				banksConfig.set("banks", bankList);
 				saveChestBanks();
 				player.sendMessage(ChatColor.GOLD + "ChestBank created!");
 				return true;
@@ -133,10 +142,10 @@ public class ChestBank extends JavaPlugin {
 					player.sendMessage(ChatColor.RED + "You're not looking at a ChestBank!");
 					return true;
 				}
-				String bankList = chestBanks.getString("banks");
+				String bankList = banksConfig.getString("banks");
 				String[] bankSplit = bankList.split(";");
 				if (bankSplit.length == 0 || bankSplit.length == 1) {
-					chestBanks.set("banks", "");
+					banksConfig.set("banks", "");
 				}
 				else {
 					String newBankList = "";
@@ -168,7 +177,7 @@ public class ChestBank extends JavaPlugin {
 							}
 						}
 					}
-					chestBanks.set("banks", newBankList);
+					banksConfig.set("banks", newBankList);
 				}
 				saveChestBanks();
 				player.sendMessage(ChatColor.GOLD + "ChestBank removed!");
@@ -192,7 +201,7 @@ public class ChestBank extends JavaPlugin {
 			if (target.hasPlayedBefore()) {
 				EntityPlayer ePlayer;
 				ePlayer = ((CraftPlayer) player).getHandle();
-				InventoryLargeChest lc = chestListener.getChest(target.getName());
+				InventoryLargeChest lc = chestBanks.get(target.getName());
 				ePlayer.a(lc);
 			}
 			else {
@@ -205,7 +214,7 @@ public class ChestBank extends JavaPlugin {
 	
 	public boolean isBankBlock (Block block) {
 		// Check if the block is a ChestBank
-		String bankList = chestBanks.getString("banks", "");
+		String bankList = banksConfig.getString("banks", "");
 		if (bankList != "") {
 			String[] bankSplit = bankList.split(";");
 			for (String bank : bankSplit) {
@@ -248,29 +257,99 @@ public class ChestBank extends JavaPlugin {
 		return null;
 	}
 	
+	public HashMap<String, InventoryLargeChest> getChests() {
+		HashMap<String, InventoryLargeChest> chests = new HashMap<String, InventoryLargeChest>();
+		ConfigurationSection chestSection = banksConfig.getConfigurationSection("accounts");
+		if (chestSection != null) {
+			Set<String> fileChests = chestSection.getKeys(false);
+			if (fileChests != null) {
+				for (String playerName : fileChests) {
+					InventoryLargeChest returnInv = new InventoryLargeChest(playerName, new TileEntityChest(), new TileEntityChest());
+					String[] chestInv = banksConfig.getString("accounts." + playerName).split(";");
+					int i = 0;
+					for (String items : chestInv) {
+						String[] item = items.split(":");
+						int i0 = Integer.parseInt(item[0]);
+						int i1 = Integer.parseInt(item[1]);
+						short i2 = Short.parseShort(item[2]);
+						if(i0 != 0) {
+							ItemStack stack = new ItemStack(i0, i1, i2);
+							if (item.length == 4) {
+								String[] enchArray = item[3].split(",");
+								for (String ench : enchArray) {
+									String[] bits = ench.split("~");
+									int enchId = Integer.parseInt(bits[0]);
+									int enchLvl = Integer.parseInt(bits[1]);
+									stack.addEnchantment(Enchantment.byId[enchId], enchLvl);
+								}
+							}
+							returnInv.setItem(i, stack);
+						}
+						i++;
+					}
+					chests.put(playerName, returnInv);
+				}
+			}
+		}
+		return chests;
+	}
+	
+	public void setChests(HashMap<String, InventoryLargeChest> chests) {
+		Set<String> chestKeys = chests.keySet();
+		for (String key : chestKeys) {
+			InventoryLargeChest chest = chests.get(key);
+			String chestInv = "";
+			for (ItemStack item : chest.getContents()) {
+				chestInv += ";";
+				if (item != null) {
+					int itemID = item.id;
+					int itemCount = item.count;
+					int itemDamage = item.getData();
+					chestInv += itemID + ":" + itemCount + ":" + itemDamage;
+					if (item.hasEnchantments()) {
+						NBTTagList itemEnch = item.getEnchantments();
+						chestInv += ":";
+						String enchList = "";
+						for (int i = 0; i < itemEnch.size(); i++) {
+							NBTTagCompound ench = (NBTTagCompound) itemEnch.get(i);
+							short enchId = ench.getShort("id");
+							short enchLvl = ench.getShort("lvl");
+							enchList += "," + enchId + "~" + enchLvl;
+						}
+						chestInv += enchList.replaceFirst(",", "");
+					}
+				}
+				else {
+					chestInv += "0:0:0";
+				}
+			}
+			banksConfig.set("accounts." + key, chestInv.replaceFirst(";", ""));
+		}
+		saveChestBanks();
+	}
+	
 	public void loadChestBanks() {
 		if (bankFile == null) {
 			bankFile = new File(getDataFolder(),"chests.yml");
 		}
-		chestBanks = YamlConfiguration.loadConfiguration(bankFile);
+		banksConfig = YamlConfiguration.loadConfiguration(bankFile);
 	}
 	
 	public FileConfiguration getChestBanks() {
-		if (chestBanks == null) {
+		if (banksConfig == null) {
 			loadChestBanks();
 		}
-		return chestBanks;
+		return banksConfig;
 	}
 	
 	public void saveChestBanks() {
-		if (chestBanks == null || bankFile == null) {
+		if (banksConfig == null || bankFile == null) {
 			return;
 		}
 		try {
-			chestBanks.save(bankFile);
+			banksConfig.save(bankFile);
 		} catch (IOException ex) {
 			this.logger.log(Level.SEVERE, "Could not save " + bankFile, ex );
 		}
 	}
-
 }
