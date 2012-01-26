@@ -10,11 +10,13 @@ import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerListener;
 
-public class ChestPlayerListener extends PlayerListener {
+public class ChestPlayerListener implements Listener {
 	
 	public static ChestBank plugin;
 	public final Logger logger = Logger.getLogger("Minecraft");
@@ -23,6 +25,7 @@ public class ChestPlayerListener extends PlayerListener {
 		plugin = instance;
 	}
 	
+	@EventHandler (priority = EventPriority.NORMAL)
 	public void onPlayerInteract (PlayerInteractEvent event) {
 		if (!event.isCancelled()) { 
 			if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
