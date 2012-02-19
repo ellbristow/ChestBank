@@ -1,5 +1,7 @@
 package me.ellbristow.ChestBank;
 
+import java.util.Iterator;
+import java.util.List;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
@@ -11,6 +13,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockIgniteEvent.IgniteCause;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 
 public class ChestBlockListener implements Listener {
 	
@@ -159,4 +162,27 @@ public class ChestBlockListener implements Listener {
 			}
 		}
 	}
+        
+        @EventHandler (priority = EventPriority.NORMAL)
+	public void onBlockExplode (EntityExplodeEvent event) {
+            List<Block> blocks = event.blockList();
+            int index = 0;
+            String saveBanks = "";
+            for (Iterator<Block> it = blocks.iterator(); it.hasNext();) {
+                Block block = it.next();
+                if (plugin.isBankBlock(block)) {
+                    if (!saveBanks.equals("")) {
+                        saveBanks += ":";
+                    }
+                    saveBanks += index;
+                }
+                index++;
+            }
+            if (!saveBanks.equals("")) {
+                String[] saves = saveBanks.split(":");
+                for (String save : saves) {
+                    event.blockList().remove(Integer.parseInt(save));
+                }
+            }
+        }
 }

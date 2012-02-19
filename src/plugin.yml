@@ -1,6 +1,6 @@
 name: ChestBank
 main: me.ellbristow.ChestBank.ChestBank
-version: 1.2
+version: 1.2.1
 author: ellbristow
 dev-url: http://dev.bukkit.org/server-mods/chestbank
 description: >
@@ -10,6 +10,7 @@ commands:
     description: ChestBank command list
     usage: "Please see /chestbank (or /cb) for ChestBank commands"
     aliases: cb
+    softdepend: [Spout]
 
 permissions:
   chestbank.*:
@@ -60,7 +61,10 @@ permissions:
 
   chestbank.limited.normal:
     description: Uses the "normal" limit
+    default: false
   chestbank.limited.elevated:
     description: Uses the "elevated" limit
+    default: false
   chestbank.limited.vip:
     description: Uses the "vip" limit
+    default: false

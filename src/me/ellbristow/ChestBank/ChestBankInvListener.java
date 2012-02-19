@@ -8,6 +8,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.getspout.spoutapi.event.inventory.InventoryClickEvent;
+import org.getspout.spoutapi.event.inventory.InventoryCloseEvent;
+import org.getspout.spoutapi.event.inventory.InventoryOpenEvent;
+import org.getspout.spoutapi.event.inventory.InventoryPlayerClickEvent;
 
 public class ChestBankInvListener implements Listener {
     
@@ -19,7 +23,7 @@ public class ChestBankInvListener implements Listener {
     }
     
     @EventHandler (priority = EventPriority.NORMAL)
-    public void onInventoryOpen(ChestBankInventoryOpenEvent event) {
+    public void onInventoryOpen(InventoryOpenEvent event) {
         Inventory inv = event.getInventory();
         Player player = event.getPlayer();
         if (inv.getName().equals(player.getName())) {
@@ -28,7 +32,7 @@ public class ChestBankInvListener implements Listener {
     }
     
     @EventHandler (priority = EventPriority.NORMAL)
-    public void onInventoryClose(ChestBankInventoryCloseEvent event) {
+    public void onInventoryClose(InventoryCloseEvent event) {
         Inventory inv = event.getInventory();
         Player player = event.getPlayer();
         if (inv.getName().equals(player.getName())) {
@@ -38,7 +42,7 @@ public class ChestBankInvListener implements Listener {
     }
     
     @EventHandler (priority = EventPriority.NORMAL)
-    public void onInventoryClick(ChestBankInventoryClickEvent event) {
+    public void onInventoryClick(InventoryClickEvent event) {
         Inventory inv = event.getInventory();
         Player player = event.getPlayer();
         if (inv.getName().equals(player.getName())) {
@@ -55,7 +59,7 @@ public class ChestBankInvListener implements Listener {
     }
     
     @EventHandler (priority = EventPriority.NORMAL)
-    public void onPlayerInventoryClick(ChestBankInventoryPlayerClickEvent event) {
+    public void onPlayerInventoryClick(InventoryPlayerClickEvent event) {
         Inventory inv = event.getInventory();
         Player player = event.getPlayer();
         if (status.containsKey(player.getName())) {
@@ -84,9 +88,6 @@ public class ChestBankInvListener implements Listener {
     
     private int getAllowedSlots(Player player) {
         int limit = 1;
-        if (!player.hasPermission("chestbank.use")) {
-            limit = 0;
-        }
         if (player.hasPermission("chestbank.limited.normal")) {
             limit = plugin.limits[0];
         }
@@ -96,8 +97,9 @@ public class ChestBankInvListener implements Listener {
         if (player.hasPermission("chestbank.limited.vip")) {
             limit = plugin.limits[2];
         }
-        if (limit > 54)
+        if (limit > 54) {
             limit = 54;
+        }
         return limit;
     }
 }
