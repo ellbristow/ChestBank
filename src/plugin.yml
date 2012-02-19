@@ -1,0 +1,66 @@
+name: ChestBank
+main: me.ellbristow.ChestBank.ChestBank
+version: 1.2
+author: ellbristow
+dev-url: http://dev.bukkit.org/server-mods/chestbank
+description: >
+             Create a private account in a chest, accessible from any other ChestBank.
+commands:
+  chestbank:
+    description: ChestBank command list
+    usage: "Please see /chestbank (or /cb) for ChestBank commands"
+    aliases: cb
+
+permissions:
+  chestbank.*:
+    description: Access to all ChestBank permissions
+    children:
+      chestbank.use: true
+      chestbank.use.networks: true
+      chestbank.create: true
+      chestbank.create.networks: true
+      chestbank.info: true
+      chestbank.list: true
+      chestbank.remove: true
+      chestbank.remove.networks: true
+      chestbank.see: true
+      chestbank.see.networks: true
+
+  chestbank.use:
+    description: Can use ChestBanks.
+  chestbank.use.networks:
+    description: Can use ChestBanks on alternate networks
+
+# Command Permissions
+
+  chestbank.create:
+    description: Can create a ChestBank.
+  chestbank.create.networks:
+    description: Can create a ChestBank on an alternate networks
+
+  chestbank.info:
+    description: Access to the /cb info command
+
+  chestbank.list:
+    description: Access to the /cb list command
+
+  chestbank.remove:
+    description: Can remove a ChestBank.
+  chestbank.remove.networks:
+    description: Can remove a ChestBank on an alternate networks
+
+  chestbank.see:
+    description: (For Mods) Can access other players accounts.
+  chestbank.see.networks:
+    description: (For Mods) Can access other players network accounts.
+
+# Usage Limit Permissions
+# If no .limited permission is specified, player can use the whole ChestBank
+# If .limited is present, player observes the limit settings from config.yml
+
+  chestbank.limited.normal:
+    description: Uses the "normal" limit
+  chestbank.limited.elevated:
+    description: Uses the "elevated" limit
+  chestbank.limited.vip:
+    description: Uses the "vip" limit

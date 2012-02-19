@@ -1,0 +1,15 @@
+# 
+# ChestBank
+# by ellbristow
+# 
+# Configuration File
+# 
+# normal_limit : Limit applied to people with the chestbank.limited.normal permission
+# elevated_limit : Limit applied to people with the chestbank.limited.elevated permission
+# vip_limit : Limit applied to people with the chestbank.limited.vip permission
+# 
+# players with no chestbank.limited permission will have access to the whole ChestBank
+
+normal_limit: 10
+elevated_limit: 25
+vip_limit: 35
