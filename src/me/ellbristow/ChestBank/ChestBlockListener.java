@@ -1,5 +1,7 @@
 package me.ellbristow.ChestBank;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import org.bukkit.ChatColor;
@@ -167,22 +169,16 @@ public class ChestBlockListener implements Listener {
 	public void onBlockExplode (EntityExplodeEvent event) {
             List<Block> blocks = event.blockList();
             int index = 0;
-            String saveBanks = "";
+            Collection<Block> saveBanks = new HashSet<Block>();
             for (Iterator<Block> it = blocks.iterator(); it.hasNext();) {
                 Block block = it.next();
                 if (plugin.isBankBlock(block)) {
-                    if (!saveBanks.equals("")) {
-                        saveBanks += ":";
-                    }
-                    saveBanks += index;
+                    saveBanks.add(block);
                 }
                 index++;
             }
-            if (!saveBanks.equals("")) {
-                String[] saves = saveBanks.split(":");
-                for (String save : saves) {
-                    event.blockList().remove(Integer.parseInt(save));
-                }
+            if (!saveBanks.isEmpty()) {
+                    event.blockList().removeAll(saveBanks);
             }
         }
 }

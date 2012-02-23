@@ -1,85 +1,50 @@
 package me.ellbristow.ChestBank;
 
-import java.util.HashMap;
+import net.minecraft.server.InventoryLargeChest;
+import net.minecraft.server.ItemStack;
+import net.minecraft.server.NBTTagList;
+import net.minecraft.server.TileEntityChest;
+import net.minecraft.server.NBTTagCompound;
 import org.bukkit.ChatColor;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.getspout.spoutapi.event.inventory.InventoryClickEvent;
-import org.getspout.spoutapi.event.inventory.InventoryCloseEvent;
-import org.getspout.spoutapi.event.inventory.InventoryOpenEvent;
-import org.getspout.spoutapi.event.inventory.InventoryPlayerClickEvent;
 
 public class ChestBankInvListener implements Listener {
     
     public static ChestBank plugin;
-    public HashMap<String, Inventory> status = new HashMap<String, Inventory>();
             
     public ChestBankInvListener (ChestBank instance) {
         plugin = instance;
     }
     
     @EventHandler (priority = EventPriority.NORMAL)
-    public void onInventoryOpen(InventoryOpenEvent event) {
-        Inventory inv = event.getInventory();
+    public void onInventoryOpen(ChestBankOpenEvent event) {
+        InventoryLargeChest inv = event.getInventory();
         Player player = event.getPlayer();
-        if (inv.getName().equals(player.getName())) {
-            status.put(player.getName(), inv);
-        }
     }
-    
+
     @EventHandler (priority = EventPriority.NORMAL)
-    public void onInventoryClose(InventoryCloseEvent event) {
-        Inventory inv = event.getInventory();
+    public void onInventoryClose(ChestBankCloseEvent event) {
+        InventoryLargeChest inv = plugin.chestBanks.get(event.getPlayer().getName());
         Player player = event.getPlayer();
-        if (inv.getName().equals(player.getName())) {
-            status.remove(player.getName());
-        }
-        plugin.setChests(plugin.chestBanks);
-    }
-    
-    @EventHandler (priority = EventPriority.NORMAL)
-    public void onInventoryClick(InventoryClickEvent event) {
-        Inventory inv = event.getInventory();
-        Player player = event.getPlayer();
-        if (inv.getName().equals(player.getName())) {
-            if (event.getCursor() != null) {
-                int usedSlots = getUsedSlots(inv);
-                int allowedSlots = getAllowedSlots(player);
-                if (usedSlots >= allowedSlots) {
-                    player.sendMessage(ChatColor.RED + "Your ChestBank is Full!");
-                    player.sendMessage(ChatColor.GRAY + "(Your Slot Limit: " + allowedSlots + ")");
-                    event.setCancelled(true);
-                }
-            }
+        int allowed = getAllowedSlots(player);
+        if (getUsedSlots(inv) > allowed) {
+            player.sendMessage(ChatColor.RED + "Sorry! You may only use " + ChatColor.WHITE + allowed + ChatColor.RED + " ChestBank slot(s)!");
+            returnExcess(player, inv);
+            player.sendMessage(ChatColor.RED + "Excess items have been dropped at your feet!");
+        } else {
+            plugin.setChests(plugin.chestBanks);
         }
     }
-    
-    @EventHandler (priority = EventPriority.NORMAL)
-    public void onPlayerInventoryClick(InventoryPlayerClickEvent event) {
-        Inventory inv = event.getInventory();
-        Player player = event.getPlayer();
-        if (status.containsKey(player.getName())) {
-            if (event.getCursor() == null) {
-                int usedSlots = getUsedSlots(status.get(player.getName()));
-                int allowedSlots = getAllowedSlots(player);
-                if (usedSlots >= allowedSlots) {
-                    player.sendMessage(ChatColor.RED + "Your ChestBank is Full!");
-                    player.sendMessage(ChatColor.GRAY + "(Your Slot Limit: " + allowedSlots + ")");
-                    event.setCancelled(true);
-                }
-            }
-        }
-    }
-    
-    private int getUsedSlots(Inventory inv) {
+
+    private int getUsedSlots(InventoryLargeChest inv) {
         ItemStack[] contents = inv.getContents();
         int count = 0;
         for (ItemStack stack : contents) {
-            if (stack != null && stack.getTypeId() != 0) {
+            if (stack != null && stack.getItem().id != 0) {
                 count++;
             }
         }
@@ -101,5 +66,37 @@ public class ChestBankInvListener implements Listener {
             limit = 54;
         }
         return limit;
+    }
+    
+    private void returnExcess(Player player, InventoryLargeChest inv) {
+        int allowed = getAllowedSlots(player);
+        int oldInvIndex = 0;
+        int newInvCount = 0;
+        InventoryLargeChest newInv = new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest());
+        for (ItemStack stack : inv.getContents()) {
+            if (stack != null) {
+                if (newInvCount < allowed) {
+                    newInv.setItem(newInvCount, stack);
+                    newInvCount++;
+                } else {
+                    int id = stack.getItem().id;
+                    int amount = stack.count;
+                    short damage = (short)stack.getData();
+                    org.bukkit.inventory.ItemStack result = new org.bukkit.inventory.ItemStack(id, amount, damage);
+                    if (stack.hasEnchantments()) {
+                        NBTTagList itemEnch = stack.getEnchantments();
+                        for (int i = 0; i < itemEnch.size(); i++) {
+                            NBTTagCompound ench = (NBTTagCompound) itemEnch.get(i);
+                            short enchId = ench.getShort("id");
+                            short enchLvl = ench.getShort("lvl");
+                            result.addEnchantment(Enchantment.getById(enchId), enchLvl);
+                        }
+                    }
+                    player.getWorld().dropItem(player.getLocation(), result);
+                }
+            }
+        }
+        plugin.chestBanks.put(player.getName(), newInv);
+        plugin.setChests(plugin.chestBanks);
     }
 }

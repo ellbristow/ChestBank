@@ -12,6 +12,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 public class ChestPlayerListener implements Listener {
 	
@@ -44,6 +46,8 @@ public class ChestPlayerListener implements Listener {
                             plugin.setChests(plugin.chestBanks);
                             ePlayer.a(inv);
                         }
+                        ChestBankOpenEvent e = new ChestBankOpenEvent(player, plugin);
+                        plugin.getServer().getPluginManager().callEvent(e);
                     }
                     event.setCancelled(true);
                 }
@@ -65,6 +69,8 @@ public class ChestPlayerListener implements Listener {
                                 plugin.setChests(plugin.chestBanks);
                                 ePlayer.a(inv);
                             }
+                            ChestBankOpenEvent e = new ChestBankOpenEvent(player, plugin);
+                            plugin.getServer().getPluginManager().callEvent(e);
                         }
                         event.setCancelled(true);
                     }
@@ -72,4 +78,30 @@ public class ChestPlayerListener implements Listener {
             }
         }
     }
+    
+    @EventHandler (priority = EventPriority.NORMAL)
+    public void onPlayerLeave (PlayerQuitEvent event) {
+        if (plugin.openInvs != null && plugin.openInvs.contains(event.getPlayer().getName())) {
+            plugin.openInvs.remove(event.getPlayer().getName());
+            ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), plugin);
+            plugin.getServer().getPluginManager().callEvent(e);
+        }
+    }
+    
+    @EventHandler (priority = EventPriority.NORMAL)
+    public void onPlayerMove (PlayerMoveEvent event) {
+        if (plugin.openInvs != null && plugin.openInvs.contains(event.getPlayer().getName())) {
+            plugin.openInvs.remove(event.getPlayer().getName());
+            ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), plugin);
+            plugin.getServer().getPluginManager().callEvent(e);
+            event.getPlayer().sendMessage(ChatColor.GRAY + "ChestBank Inventory Saved!");
+        }
+    }
+    
+    @EventHandler (priority = EventPriority.NORMAL)
+    public void onInventoryOpen(ChestBankOpenEvent event) {
+        plugin.openInvs.add(event.getPlayer().getName());
+    }
+    
+    
 }

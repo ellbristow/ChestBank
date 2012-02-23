@@ -3,6 +3,7 @@ package me.ellbristow.ChestBank;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,6 +34,7 @@ public class ChestBank extends JavaPlugin {
         public final ChestBlockListener blockListener = new ChestBlockListener(this);
         public final ChestPlayerListener playerListener = new ChestPlayerListener(this);
         public final ChestBankInvListener invListener = new ChestBankInvListener(this);
+        public HashSet<String> openInvs = new HashSet<String>();
 
 	@Override
 	public void onDisable () {
@@ -56,19 +58,11 @@ public class ChestBank extends JavaPlugin {
                 saveConfig();
 		pm.registerEvents(blockListener, this);
 		pm.registerEvents(playerListener, this);
-                if (getServer().getPluginManager().isPluginEnabled("Spout")) {
-                    pm.registerEvents(invListener, this);
-                } else {
-                    getServer().getScheduler().scheduleAsyncRepeatingTask(this, new Runnable() {
-                        public void run() {
-                            setChests(chestBanks);
-                        }
-                    }, 6000L, 6000L);
-                }
+                pm.registerEvents(invListener, this);
 		banksConfig = getChestBanks();
 		saveChestBanks();
-		chestBanks = getChests();
                 bankTidy();
+		chestBanks = getChests();
 	}
 	
         @Override
@@ -404,27 +398,31 @@ public class ChestBank extends JavaPlugin {
                     } catch (NumberFormatException nfe) {
                         hasWorld = true;
                     }
+                    int bankX = 0;
+                    int bankY = 0;
+                    int bankZ = 0;
                     if (!hasWorld) {
-                        int bankX = Integer.parseInt(loc[0]);
-                        int bankY = Integer.parseInt(loc[1]);
-                        int bankZ = Integer.parseInt(loc[2]);
+                        bankX = Integer.parseInt(loc[0]);
+                        bankY = Integer.parseInt(loc[1]);
+                        bankZ = Integer.parseInt(loc[2]);
                         newBankList += bankX + ":" + bankY + ":" + bankZ;
                     } else {
-                        int bankX = Integer.parseInt(loc[1]);
-                        int bankY = Integer.parseInt(loc[2]);
-                        int bankZ = Integer.parseInt(loc[3]);
-                        if (getServer().getWorld(loc[0]).getBlockAt(bankX, bankY, bankZ).getTypeId() == 54) {
-                            newBankList += bankX + ":" + bankY + ":" + bankZ;
-                        } else {
-                            dropped++;
-                        }
+                        bankX = Integer.parseInt(loc[1]);
+                        bankY = Integer.parseInt(loc[2]);
+                        bankZ = Integer.parseInt(loc[3]);
+                    }
+                    if (getServer().getWorld(loc[0]).getBlockAt(bankX, bankY, bankZ).getTypeId() == 54) {
+                        newBankList += bankX + ":" + bankY + ":" + bankZ;
+                    } else {
+                        dropped++;
                     }
                 }
-                if (newBankList != "") {
+                if (!newBankList.equals("")) {
                     banksConfig.set("bank", newBankList);
                 }
                 if (dropped != 0) {
                     logger.info(dropped + " orphaned ChestBanks removed!");
+                    saveChestBanks();
                 }
             }
         }
