@@ -405,17 +405,28 @@ public class ChestBank extends JavaPlugin {
                         bankX = Integer.parseInt(loc[0]);
                         bankY = Integer.parseInt(loc[1]);
                         bankZ = Integer.parseInt(loc[2]);
-                        newBankList += bankX + ":" + bankY + ":" + bankZ;
+                        if (getServer().getWorlds().get(0).getBlockAt(bankX, bankY, bankZ).getTypeId() == 54) {
+                            newBankList += bankX + ":" + bankY + ":" + bankZ;
+                            if (loc.length > 3) {
+                                newBankList += loc[3] + ":" + loc[4] + ":" + loc[5];
+                            }
+                        } else {
+                            dropped++;
+                        }
                     } else {
                         bankX = Integer.parseInt(loc[1]);
                         bankY = Integer.parseInt(loc[2]);
                         bankZ = Integer.parseInt(loc[3]);
+                        if (getServer().getWorld(loc[0]).getBlockAt(bankX, bankY, bankZ).getTypeId() == 54) {
+                            newBankList += bankX + ":" + bankY + ":" + bankZ;
+                            if (loc.length > 4) {
+                                newBankList += loc[3] + ":" + loc[4] + ":" + loc[5];
+                            }
+                        } else {
+                            dropped++;
+                        }
                     }
-                    if (getServer().getWorld(loc[0]).getBlockAt(bankX, bankY, bankZ).getTypeId() == 54) {
-                        newBankList += bankX + ":" + bankY + ":" + bankZ;
-                    } else {
-                        dropped++;
-                    }
+                    
                 }
                 if (!newBankList.equals("")) {
                     banksConfig.set("bank", newBankList);
