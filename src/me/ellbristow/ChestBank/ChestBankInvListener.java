@@ -52,7 +52,7 @@ public class ChestBankInvListener implements Listener {
     }
     
     private int getAllowedSlots(Player player) {
-        int limit = 1;
+        int limit = 54;
         if (player.hasPermission("chestbank.limited.normal")) {
             limit = plugin.limits[0];
         }
