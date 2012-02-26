@@ -28,7 +28,7 @@ public class ChestBankInvListener implements Listener {
 
     @EventHandler (priority = EventPriority.NORMAL)
     public void onInventoryClose(ChestBankCloseEvent event) {
-        InventoryLargeChest inv = plugin.chestBanks.get(event.getPlayer().getName());
+        InventoryLargeChest inv = plugin.chestAccounts.get(event.getPlayer().getName());
         Player player = event.getPlayer();
         int allowed = getAllowedSlots(player);
         if (getUsedSlots(inv) > allowed) {
@@ -36,8 +36,9 @@ public class ChestBankInvListener implements Listener {
             returnExcess(player, inv);
             player.sendMessage(ChatColor.RED + "Excess items have been dropped at your feet!");
         } else {
-            plugin.setChests(plugin.chestBanks);
+            plugin.setAccounts(plugin.chestAccounts);
         }
+        event.getPlayer().sendMessage(ChatColor.GRAY + "ChestBank Inventory Saved!");
     }
 
     private int getUsedSlots(InventoryLargeChest inv) {
@@ -70,7 +71,6 @@ public class ChestBankInvListener implements Listener {
     
     private void returnExcess(Player player, InventoryLargeChest inv) {
         int allowed = getAllowedSlots(player);
-        int oldInvIndex = 0;
         int newInvCount = 0;
         InventoryLargeChest newInv = new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest());
         for (ItemStack stack : inv.getContents()) {
@@ -96,7 +96,7 @@ public class ChestBankInvListener implements Listener {
                 }
             }
         }
-        plugin.chestBanks.put(player.getName(), newInv);
-        plugin.setChests(plugin.chestBanks);
+        plugin.chestAccounts.put(player.getName(), newInv);
+        plugin.setAccounts(plugin.chestAccounts);
     }
 }

@@ -37,13 +37,13 @@ public class ChestPlayerListener implements Listener {
                         EntityPlayer ePlayer;
                         ePlayer = ((CraftPlayer) player).getHandle();
                         String network = plugin.getNetwork(block);
-                        InventoryLargeChest inv = plugin.chestBanks.get(network + ">>" + player.getName());
+                        InventoryLargeChest inv = plugin.chestAccounts.get(network + ">>" + player.getName());
                         if (inv != null) {
                             ePlayer.a(inv);
                         } else {
                             inv = new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest());
-                            plugin.chestBanks.put(network + ">>" + player.getName(), inv);
-                            plugin.setChests(plugin.chestBanks);
+                            plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
+                            plugin.setAccounts(plugin.chestAccounts);
                             ePlayer.a(inv);
                         }
                         ChestBankOpenEvent e = new ChestBankOpenEvent(player, plugin);
@@ -60,13 +60,13 @@ public class ChestPlayerListener implements Listener {
                         else {
                             EntityPlayer ePlayer;
                             ePlayer = ((CraftPlayer) player).getHandle();
-                            InventoryLargeChest inv = plugin.chestBanks.get(player.getName());
+                            InventoryLargeChest inv = plugin.chestAccounts.get(player.getName());
                             if (inv != null) {
                                 ePlayer.a(inv);
                             } else {
                                 inv = new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest());
-                                plugin.chestBanks.put(player.getName(), inv);
-                                plugin.setChests(plugin.chestBanks);
+                                plugin.chestAccounts.put(player.getName(), inv);
+                                plugin.setAccounts(plugin.chestAccounts);
                                 ePlayer.a(inv);
                             }
                             ChestBankOpenEvent e = new ChestBankOpenEvent(player, plugin);
@@ -94,7 +94,6 @@ public class ChestPlayerListener implements Listener {
             plugin.openInvs.remove(event.getPlayer().getName());
             ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), plugin);
             plugin.getServer().getPluginManager().callEvent(e);
-            event.getPlayer().sendMessage(ChatColor.GRAY + "ChestBank Inventory Saved!");
         }
     }
     

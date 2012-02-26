@@ -24,7 +24,7 @@ class ChestBankCloseEvent extends ChestBankInvEvent implements ChestBankEvent {
     }
     
     public InventoryLargeChest getInventory() {
-        return plugin.chestBanks.get(this.player.getName());
+        return plugin.chestAccounts.get(this.player.getName());
     }
     
     public Inventory getPlayerInventory() {
