@@ -28,13 +28,20 @@ public class ChestBankInvListener implements Listener {
 
     @EventHandler (priority = EventPriority.NORMAL)
     public void onInventoryClose(ChestBankCloseEvent event) {
-        InventoryLargeChest inv = plugin.chestAccounts.get(event.getPlayer().getName());
+        String networkName = event.getNetwork();
+        InventoryLargeChest inv = event.getInventory();
         Player player = event.getPlayer();
         int allowed = getAllowedSlots(player);
         if (getUsedSlots(inv) > allowed) {
             player.sendMessage(ChatColor.RED + "Sorry! You may only use " + ChatColor.WHITE + allowed + ChatColor.RED + " ChestBank slot(s)!");
-            returnExcess(player, inv);
-            player.sendMessage(ChatColor.RED + "Excess items have been dropped at your feet!");
+            inv = trimExcess(player, inv);
+            player.sendMessage(ChatColor.RED + "Excess items have been returned to you!");
+            if (networkName.equals("")) {
+                plugin.chestAccounts.put(player.getName(), inv);
+            } else {
+                plugin.chestAccounts.put(networkName + ">>" + player.getName(), inv);
+            }
+            plugin.setAccounts(plugin.chestAccounts);
         } else {
             plugin.setAccounts(plugin.chestAccounts);
         }
@@ -53,7 +60,7 @@ public class ChestBankInvListener implements Listener {
     }
     
     private int getAllowedSlots(Player player) {
-        int limit = 54;
+        int limit = 1;
         if (player.hasPermission("chestbank.limited.normal")) {
             limit = plugin.limits[0];
         }
@@ -69,7 +76,7 @@ public class ChestBankInvListener implements Listener {
         return limit;
     }
     
-    private void returnExcess(Player player, InventoryLargeChest inv) {
+    private InventoryLargeChest trimExcess(Player player, InventoryLargeChest inv) {
         int allowed = getAllowedSlots(player);
         int newInvCount = 0;
         InventoryLargeChest newInv = new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest());
@@ -92,11 +99,10 @@ public class ChestBankInvListener implements Listener {
                             result.addEnchantment(Enchantment.getById(enchId), enchLvl);
                         }
                     }
-                    player.getWorld().dropItem(player.getLocation(), result);
+                    player.getInventory().addItem(result);
                 }
             }
         }
-        plugin.chestAccounts.put(player.getName(), newInv);
-        plugin.setAccounts(plugin.chestAccounts);
+        return newInv;
     }
 }

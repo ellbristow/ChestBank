@@ -46,7 +46,7 @@ public class ChestPlayerListener implements Listener {
                             plugin.setAccounts(plugin.chestAccounts);
                             ePlayer.a(inv);
                         }
-                        ChestBankOpenEvent e = new ChestBankOpenEvent(player, plugin);
+                        ChestBankOpenEvent e = new ChestBankOpenEvent(player, block, plugin);
                         plugin.getServer().getPluginManager().callEvent(e);
                     }
                     event.setCancelled(true);
@@ -69,7 +69,7 @@ public class ChestPlayerListener implements Listener {
                                 plugin.setAccounts(plugin.chestAccounts);
                                 ePlayer.a(inv);
                             }
-                            ChestBankOpenEvent e = new ChestBankOpenEvent(player, plugin);
+                            ChestBankOpenEvent e = new ChestBankOpenEvent(player, block, plugin);
                             plugin.getServer().getPluginManager().callEvent(e);
                         }
                         event.setCancelled(true);
@@ -81,25 +81,34 @@ public class ChestPlayerListener implements Listener {
     
     @EventHandler (priority = EventPriority.NORMAL)
     public void onPlayerLeave (PlayerQuitEvent event) {
-        if (plugin.openInvs != null && plugin.openInvs.contains(event.getPlayer().getName())) {
+        if (plugin.openInvs != null && plugin.openInvs.containsKey(event.getPlayer().getName())) {
+            String network = plugin.openInvs.get(event.getPlayer().getName());
             plugin.openInvs.remove(event.getPlayer().getName());
-            ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), plugin);
+            ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), network, plugin);
             plugin.getServer().getPluginManager().callEvent(e);
         }
     }
     
     @EventHandler (priority = EventPriority.NORMAL)
     public void onPlayerMove (PlayerMoveEvent event) {
-        if (plugin.openInvs != null && plugin.openInvs.contains(event.getPlayer().getName())) {
+        if (plugin.openInvs != null && plugin.openInvs.containsKey(event.getPlayer().getName())) {
+            String network = plugin.openInvs.get(event.getPlayer().getName());
             plugin.openInvs.remove(event.getPlayer().getName());
-            ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), plugin);
+            ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), network, plugin);
             plugin.getServer().getPluginManager().callEvent(e);
         }
     }
     
     @EventHandler (priority = EventPriority.NORMAL)
     public void onInventoryOpen(ChestBankOpenEvent event) {
-        plugin.openInvs.add(event.getPlayer().getName());
+        Block block = event.getBlock();
+        String networkName = "";
+        if (plugin.isNetworkBank(block)) {
+            networkName = plugin.getNetwork(block);
+        } else {
+            networkName = "";
+        }
+        plugin.openInvs.put(event.getPlayer().getName(), networkName);
     }
     
     

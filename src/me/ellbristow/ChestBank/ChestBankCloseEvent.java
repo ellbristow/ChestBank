@@ -11,11 +11,19 @@ class ChestBankCloseEvent extends ChestBankInvEvent implements ChestBankEvent {
     private final Player player;
     private static final ChestBankEventType type = ChestBankEventType.INVENTORY_OPEN;
     public static ChestBank plugin;
+    private final String network;
+    private InventoryLargeChest inv;
     
-    public ChestBankCloseEvent (Player player, ChestBank instance) {
+    public ChestBankCloseEvent (Player player, String networkName, ChestBank instance) {
         super(player);
         plugin = instance;
         this.player = player;
+        network = networkName;
+        if (networkName.equals("")) {
+            inv = plugin.chestAccounts.get(this.player.getName());
+        } else {
+            inv = plugin.chestAccounts.get(networkName + ">>" + this.player.getName());
+        }
     }
     
     @Override
@@ -24,7 +32,7 @@ class ChestBankCloseEvent extends ChestBankInvEvent implements ChestBankEvent {
     }
     
     public InventoryLargeChest getInventory() {
-        return plugin.chestAccounts.get(this.player.getName());
+        return inv;
     }
     
     public Inventory getPlayerInventory() {
@@ -34,6 +42,10 @@ class ChestBankCloseEvent extends ChestBankInvEvent implements ChestBankEvent {
     @Override
     public HandlerList getHandlers() {
         return handlers;
+    }
+    
+    public String getNetwork() {
+        return network;
     }
     
     public static HandlerList getHandlerList() {

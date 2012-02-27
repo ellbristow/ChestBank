@@ -3,7 +3,6 @@ package me.ellbristow.ChestBank;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,7 +33,7 @@ public class ChestBank extends JavaPlugin {
     public final ChestBlockListener blockListener = new ChestBlockListener(this);
     public final ChestPlayerListener playerListener = new ChestPlayerListener(this);
     public final ChestBankInvListener invListener = new ChestBankInvListener(this);
-    public HashSet<String> openInvs = new HashSet<String>();
+    public HashMap<String, String> openInvs = new HashMap<String, String>();
 
     @Override
     public void onDisable () {
@@ -288,7 +287,7 @@ public class ChestBank extends JavaPlugin {
                         return true;
                     } else {
                         String network = getNetwork(block);
-                        player.sendMessage(ChatColor.GOLD + "This ChestBank is on the " + ChatColor.WHITE + network + ChatColor.GOLD + "network!");
+                        player.sendMessage(ChatColor.GOLD + "This ChestBank is on the " + ChatColor.WHITE + network + ChatColor.GOLD + " network!");
                         return true;
                     }
                 }

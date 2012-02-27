@@ -1,6 +1,7 @@
 package me.ellbristow.ChestBank;
 
 import net.minecraft.server.InventoryLargeChest;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.Inventory;
@@ -10,12 +11,18 @@ class ChestBankOpenEvent extends ChestBankInvEvent implements ChestBankEvent {
     private static final HandlerList handlers = new HandlerList();
     private final Player player;
     private static final ChestBankEventType type = ChestBankEventType.INVENTORY_OPEN;
+    private Block chestBlock;
     public static ChestBank plugin;
     
-    public ChestBankOpenEvent (Player player, ChestBank instance) {
+    public ChestBankOpenEvent (Player player, Block block, ChestBank instance) {
         super(player);
         plugin = instance;
         this.player = player;
+        chestBlock = block;
+    }
+    
+    public Block getBlock() {
+        return chestBlock;
     }
     
     @Override
