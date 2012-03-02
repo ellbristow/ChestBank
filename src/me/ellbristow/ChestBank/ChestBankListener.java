@@ -43,7 +43,7 @@ public class ChestBankListener implements Listener {
                     else {
                         String network = plugin.getNetwork(block);
                         DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
-                        if (inv != null) {
+                        if (inv != null && inv.getContents().length != 0) {
                             plugin.openInvs.put(player.getName(), network);
                             player.openInventory(inv);
                         } else {
@@ -62,7 +62,7 @@ public class ChestBankListener implements Listener {
                     }
                     else {
                         DoubleChestInventory inv = plugin.chestAccounts.get(player.getName());
-                        if (inv.getContents().length != 0) {
+                        if (inv != null && inv.getContents().length != 0) {
                             plugin.openInvs.put(player.getName(), "");
                             player.openInventory(inv);
                         } else {
