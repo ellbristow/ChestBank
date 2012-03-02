@@ -1,9 +1,9 @@
 package me.ellbristow.ChestBank;
 
-import net.minecraft.server.InventoryLargeChest;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
+import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.Inventory;
 
 class ChestBankOpenEvent extends ChestBankInvEvent implements ChestBankEvent {
@@ -30,7 +30,7 @@ class ChestBankOpenEvent extends ChestBankInvEvent implements ChestBankEvent {
         return type;
     }
     
-    public InventoryLargeChest getInventory() {
+    public DoubleChestInventory getInventory() {
         return plugin.chestAccounts.get(this.player.getName());
     }
     

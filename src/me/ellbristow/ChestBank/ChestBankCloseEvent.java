@@ -1,8 +1,8 @@
 package me.ellbristow.ChestBank;
 
-import net.minecraft.server.InventoryLargeChest;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
+import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.Inventory;
 
 class ChestBankCloseEvent extends ChestBankInvEvent implements ChestBankEvent {
@@ -12,7 +12,7 @@ class ChestBankCloseEvent extends ChestBankInvEvent implements ChestBankEvent {
     private static final ChestBankEventType type = ChestBankEventType.INVENTORY_OPEN;
     public static ChestBank plugin;
     private final String network;
-    private InventoryLargeChest inv;
+    private DoubleChestInventory inv;
     
     public ChestBankCloseEvent (Player player, String networkName, ChestBank instance) {
         super(player);
@@ -31,7 +31,7 @@ class ChestBankCloseEvent extends ChestBankInvEvent implements ChestBankEvent {
         return type;
     }
     
-    public InventoryLargeChest getInventory() {
+    public DoubleChestInventory getInventory() {
         return inv;
     }
     

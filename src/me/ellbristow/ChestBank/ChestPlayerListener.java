@@ -1,11 +1,10 @@
 package me.ellbristow.ChestBank;
 
-import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.InventoryLargeChest;
 import net.minecraft.server.TileEntityChest;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -14,6 +13,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.DoubleChestInventory;
 
 public class ChestPlayerListener implements Listener {
 	
@@ -34,17 +34,15 @@ public class ChestPlayerListener implements Listener {
                         player.sendMessage(ChatColor.RED + "You do not have permission to use network ChestBanks!");
                     }
                     else {
-                        EntityPlayer ePlayer;
-                        ePlayer = ((CraftPlayer) player).getHandle();
                         String network = plugin.getNetwork(block);
-                        InventoryLargeChest inv = plugin.chestAccounts.get(network + ">>" + player.getName());
+                        DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
                         if (inv != null) {
-                            ePlayer.a(inv);
+                            player.openInventory(inv);
                         } else {
-                            inv = new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest());
+                            inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
                             plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
                             plugin.setAccounts(plugin.chestAccounts);
-                            ePlayer.a(inv);
+                            player.openInventory(inv);
                         }
                         ChestBankOpenEvent e = new ChestBankOpenEvent(player, block, plugin);
                         plugin.getServer().getPluginManager().callEvent(e);
@@ -58,16 +56,14 @@ public class ChestPlayerListener implements Listener {
                             player.sendMessage(ChatColor.RED + "You do not have permission to use ChestBanks!");
                         }
                         else {
-                            EntityPlayer ePlayer;
-                            ePlayer = ((CraftPlayer) player).getHandle();
-                            InventoryLargeChest inv = plugin.chestAccounts.get(player.getName());
-                            if (inv != null) {
-                                ePlayer.a(inv);
+                            DoubleChestInventory inv = plugin.chestAccounts.get(player.getName());
+                            if (inv.getContents().length != 0) {
+                                player.openInventory(inv);
                             } else {
-                                inv = new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest());
+                                inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
                                 plugin.chestAccounts.put(player.getName(), inv);
                                 plugin.setAccounts(plugin.chestAccounts);
-                                ePlayer.a(inv);
+                                player.openInventory(inv);
                             }
                             ChestBankOpenEvent e = new ChestBankOpenEvent(player, block, plugin);
                             plugin.getServer().getPluginManager().callEvent(e);

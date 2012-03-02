@@ -3,10 +3,12 @@ package me.ellbristow.ChestBank;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import net.minecraft.server.*;
+import net.minecraft.server.InventoryLargeChest;
+import net.minecraft.server.TileEntityChest;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
@@ -15,8 +17,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
+import org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -28,7 +35,7 @@ public class ChestBank extends JavaPlugin {
     public FileConfiguration banksConfig;
     public FileConfiguration config;
     private File bankFile = null;
-    public HashMap<String, InventoryLargeChest> chestAccounts;
+    public HashMap<String, DoubleChestInventory> chestAccounts;
     public int[] limits = {10,25,35};
     public final ChestBlockListener blockListener = new ChestBlockListener(this);
     public final ChestPlayerListener playerListener = new ChestPlayerListener(this);
@@ -340,10 +347,8 @@ public class ChestBank extends JavaPlugin {
                 account = target.getName();
             }
             if (chestAccounts.containsKey(account)) {
-                EntityPlayer ePlayer;
-                ePlayer = ((CraftPlayer) player).getHandle();
-                InventoryLargeChest lc = chestAccounts.get(account);
-                ePlayer.a(lc);
+                DoubleChestInventory lc = chestAccounts.get(account);
+                player.openInventory(lc);
             }
             else {
                 player.sendMessage(ChatColor.RED + target.getName() + " does not have a ChestBank account here!");
@@ -601,8 +606,8 @@ public class ChestBank extends JavaPlugin {
         return null;
     }
 	
-    public HashMap<String, InventoryLargeChest> getAccounts() {
-        HashMap<String, InventoryLargeChest> chests = new HashMap<String, InventoryLargeChest>();
+    public HashMap<String, DoubleChestInventory> getAccounts() {
+        HashMap<String, DoubleChestInventory> chests = new HashMap<String, DoubleChestInventory>();
         ConfigurationSection chestSection = banksConfig.getConfigurationSection("accounts");
         if (chestSection != null) {
             Set<String> fileChests = chestSection.getKeys(false);
@@ -614,7 +619,7 @@ public class ChestBank extends JavaPlugin {
                     } else {
                         account = playerName;
                     }
-                    InventoryLargeChest returnInv = new InventoryLargeChest(account, new TileEntityChest(), new TileEntityChest());
+                    DoubleChestInventory returnInv = new CraftInventoryDoubleChest(new InventoryLargeChest(account, new TileEntityChest(), new TileEntityChest()));
                     String[] chestInv = banksConfig.getString("accounts." + playerName).split(";");
                     int i = 0;
                     for (String items : chestInv) {
@@ -630,7 +635,7 @@ public class ChestBank extends JavaPlugin {
                                     String[] bits = ench.split("~");
                                     int enchId = Integer.parseInt(bits[0]);
                                     int enchLvl = Integer.parseInt(bits[1]);
-                                    stack.addEnchantment(Enchantment.byId[enchId], enchLvl);
+                                    stack.addEnchantment(Enchantment.getById(enchId), enchLvl);
                                 }
                             }
                             returnInv.setItem(i, stack);
@@ -644,27 +649,26 @@ public class ChestBank extends JavaPlugin {
         return chests;
     }
 	
-    public void setAccounts(HashMap<String, InventoryLargeChest> chests) {
+    public void setAccounts(HashMap<String, DoubleChestInventory> chests) {
         Set<String> chestKeys = chests.keySet();
         for (String key : chestKeys) {
-            InventoryLargeChest chest = chests.get(key);
+            DoubleChestInventory chest = chests.get(key);
             String chestInv = "";
             for (ItemStack item : chest.getContents()) {
                 chestInv += ";";
                 if (item != null) {
-                    int itemID = item.id;
-                    int itemCount = item.count;
-                    int itemDamage = item.getData();
+                    int itemID = item.getTypeId();
+                    int itemCount = item.getAmount();
+                    int itemDamage = item.getDurability();
                     chestInv += itemID + ":" + itemCount + ":" + itemDamage;
-                    if (item.hasEnchantments()) {
-                        NBTTagList itemEnch = item.getEnchantments();
+                    Map<Enchantment, Integer> enchantments = item.getEnchantments();
+                    if (!enchantments.isEmpty()) {
                         chestInv += ":";
                         String enchList = "";
-                        for (int i = 0; i < itemEnch.size(); i++) {
-                            NBTTagCompound ench = (NBTTagCompound) itemEnch.get(i);
-                            short enchId = ench.getShort("id");
-                            short enchLvl = ench.getShort("lvl");
-                            enchList += "," + enchId + "~" + enchLvl;
+                        Set<Enchantment> keys = enchantments.keySet();
+                        for (int i = 0; i < enchantments.size(); i++) {
+                            Enchantment ench = keys.iterator().next();
+                            enchList += "," + ench.getId() + "~" + enchantments.get(ench);
                         }
                         chestInv += enchList.replaceFirst(",", "");
                     }
