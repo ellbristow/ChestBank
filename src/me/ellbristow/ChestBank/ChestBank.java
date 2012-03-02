@@ -35,8 +35,7 @@ public class ChestBank extends JavaPlugin {
     private File bankFile = null;
     public HashMap<String, DoubleChestInventory> chestAccounts;
     public int[] limits = {10,25,35};
-    public final ChestBlockListener blockListener = new ChestBlockListener(this);
-    public final ChestPlayerListener playerListener = new ChestPlayerListener(this);
+    public final ChestBankListener playerListener = new ChestBankListener(this);
     public HashMap<String, String> openInvs = new HashMap<String, String>();
 
     @Override
@@ -58,7 +57,6 @@ public class ChestBank extends JavaPlugin {
         limits[2] = config.getInt("vip_limit");
         config.set("vip_limit", limits[2]);
         saveConfig();
-        pm.registerEvents(blockListener, this);
         pm.registerEvents(playerListener, this);
         banksConfig = getChestBanks();
         bankTidy();
@@ -474,10 +472,10 @@ public class ChestBank extends JavaPlugin {
         }
         if (dropped != 0 || updated != 0) {
             if (dropped != 0) {
-                logger.info(dropped + " orphaned ChestBanks removed!");
+                logger.log(Level.INFO, "{0} orphaned ChestBanks removed!", dropped);
             }
             if (updated != 0) {
-                logger.info(updated + " ChestBanks updated!");
+                logger.log(Level.INFO, "{0} ChestBanks updated!", updated);
             }
             saveChestBanks();
         }
