@@ -17,12 +17,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.DoubleChestInventory;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
@@ -39,7 +37,6 @@ public class ChestBank extends JavaPlugin {
     public int[] limits = {10,25,35};
     public final ChestBlockListener blockListener = new ChestBlockListener(this);
     public final ChestPlayerListener playerListener = new ChestPlayerListener(this);
-    public final ChestBankInvListener invListener = new ChestBankInvListener(this);
     public HashMap<String, String> openInvs = new HashMap<String, String>();
 
     @Override
@@ -63,7 +60,6 @@ public class ChestBank extends JavaPlugin {
         saveConfig();
         pm.registerEvents(blockListener, this);
         pm.registerEvents(playerListener, this);
-        pm.registerEvents(invListener, this);
         banksConfig = getChestBanks();
         bankTidy();
         chestAccounts = getAccounts();

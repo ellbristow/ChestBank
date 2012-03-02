@@ -1,19 +1,24 @@
 package me.ellbristow.ChestBank;
 
+import java.util.Map;
+import java.util.Set;
 import net.minecraft.server.InventoryLargeChest;
 import net.minecraft.server.TileEntityChest;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
+import org.bukkit.block.Chest;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.ItemStack;
 
 public class ChestPlayerListener implements Listener {
 	
@@ -37,75 +42,122 @@ public class ChestPlayerListener implements Listener {
                         String network = plugin.getNetwork(block);
                         DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
                         if (inv != null) {
+                            plugin.openInvs.put(player.getName(), network);
                             player.openInventory(inv);
                         } else {
                             inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
                             plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
                             plugin.setAccounts(plugin.chestAccounts);
+                            plugin.openInvs.put(player.getName(), network);
                             player.openInventory(inv);
                         }
-                        ChestBankOpenEvent e = new ChestBankOpenEvent(player, block, plugin);
-                        plugin.getServer().getPluginManager().callEvent(e);
                     }
                     event.setCancelled(true);
-                }
-                if (!event.isCancelled()) {
-                    if (block.getTypeId() == 54 && plugin.isBankBlock(block)) {
-                        Player player = event.getPlayer();
-                        if (!player.hasPermission("chestbank.use")) {
-                            player.sendMessage(ChatColor.RED + "You do not have permission to use ChestBanks!");
-                        }
-                        else {
-                            DoubleChestInventory inv = plugin.chestAccounts.get(player.getName());
-                            if (inv.getContents().length != 0) {
-                                player.openInventory(inv);
-                            } else {
-                                inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
-                                plugin.chestAccounts.put(player.getName(), inv);
-                                plugin.setAccounts(plugin.chestAccounts);
-                                player.openInventory(inv);
-                            }
-                            ChestBankOpenEvent e = new ChestBankOpenEvent(player, block, plugin);
-                            plugin.getServer().getPluginManager().callEvent(e);
-                        }
-                        event.setCancelled(true);
+                } else if (block.getTypeId() == 54 && plugin.isBankBlock(block)) {
+                    Player player = event.getPlayer();
+                    if (!player.hasPermission("chestbank.use")) {
+                        player.sendMessage(ChatColor.RED + "You do not have permission to use ChestBanks!");
                     }
+                    else {
+                        DoubleChestInventory inv = plugin.chestAccounts.get(player.getName());
+                        if (inv.getContents().length != 0) {
+                            plugin.openInvs.put(player.getName(), "");
+                            player.openInventory(inv);
+                        } else {
+                            inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
+                            plugin.chestAccounts.put(player.getName(), inv);
+                            plugin.setAccounts(plugin.chestAccounts);
+                            plugin.openInvs.put(player.getName(), "");
+                            player.openInventory(inv);
+                        }
+                    }
+                    event.setCancelled(true);
                 }
             }
         }
     }
     
     @EventHandler (priority = EventPriority.NORMAL)
-    public void onPlayerLeave (PlayerQuitEvent event) {
-        if (plugin.openInvs != null && plugin.openInvs.containsKey(event.getPlayer().getName())) {
+    public void onInventoryClose (InventoryCloseEvent event) {
+        Player player = (Player)event.getPlayer();
+        if (plugin.openInvs != null && plugin.openInvs.containsKey(player.getName())) {
             String network = plugin.openInvs.get(event.getPlayer().getName());
             plugin.openInvs.remove(event.getPlayer().getName());
-            ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), network, plugin);
-            plugin.getServer().getPluginManager().callEvent(e);
+            DoubleChestInventory inv = (DoubleChestInventory)event.getInventory();
+            int allowed = getAllowedSlots(player);
+            if (getUsedSlots(inv) > allowed) {
+                player.sendMessage(ChatColor.RED + "Sorry! You may only use " + ChatColor.WHITE + allowed + ChatColor.RED + " ChestBank slot(s)!");
+                inv = trimExcess(player, inv);
+                player.sendMessage(ChatColor.RED + "Excess items have been returned to you!");
+                if (network.equals("")) {
+                    plugin.chestAccounts.put(player.getName(), inv);
+                } else {
+                    plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
+                }
+                plugin.setAccounts(plugin.chestAccounts);
+            } else {
+                plugin.setAccounts(plugin.chestAccounts);
+            }
+            player.sendMessage(ChatColor.GRAY + "ChestBank Inventory Saved!");
         }
     }
     
-    @EventHandler (priority = EventPriority.NORMAL)
-    public void onPlayerMove (PlayerMoveEvent event) {
-        if (plugin.openInvs != null && plugin.openInvs.containsKey(event.getPlayer().getName())) {
-            String network = plugin.openInvs.get(event.getPlayer().getName());
-            plugin.openInvs.remove(event.getPlayer().getName());
-            ChestBankCloseEvent e = new ChestBankCloseEvent(event.getPlayer(), network, plugin);
-            plugin.getServer().getPluginManager().callEvent(e);
+    private int getUsedSlots(DoubleChestInventory inv) {
+        ItemStack[] contents = inv.getContents();
+        int count = 0;
+        for (ItemStack stack : contents) {
+            if (stack != null && stack.getTypeId() != 0) {
+                count++;
+            }
         }
+        return count;
     }
     
-    @EventHandler (priority = EventPriority.NORMAL)
-    public void onInventoryOpen(ChestBankOpenEvent event) {
-        Block block = event.getBlock();
-        String networkName = "";
-        if (plugin.isNetworkBank(block)) {
-            networkName = plugin.getNetwork(block);
-        } else {
-            networkName = "";
+    private int getAllowedSlots(Player player) {
+        int limit = 54;
+        if (player.hasPermission("chestbank.limited.normal")) {
+            limit = plugin.limits[0];
         }
-        plugin.openInvs.put(event.getPlayer().getName(), networkName);
+        if (player.hasPermission("chestbank.limited.elevated")) {
+            limit = plugin.limits[1];
+        }
+        if (player.hasPermission("chestbank.limited.vip")) {
+            limit = plugin.limits[2];
+        }
+        if (limit > 54) {
+            limit = 54;
+        }
+        return limit;
     }
     
+    private DoubleChestInventory trimExcess(Player player, DoubleChestInventory inv) {
+        int allowed = getAllowedSlots(player);
+        int newInvCount = 0;
+        DoubleChestInventory newInv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
+        for (ItemStack stack : inv.getContents()) {
+            if (stack != null) {
+                if (newInvCount < allowed) {
+                    newInv.setItem(newInvCount, stack);
+                    newInvCount++;
+                } else {
+                    int id = stack.getTypeId();
+                    int amount = stack.getAmount();
+                    short damage = (short)stack.getDurability();
+                    org.bukkit.inventory.ItemStack result = new org.bukkit.inventory.ItemStack(id, amount, damage);
+                    Map<Enchantment, Integer> enchantments = stack.getEnchantments();
+                    if (!enchantments.isEmpty()) {
+                        Set<Enchantment> keys = enchantments.keySet();
+                        for (int i = 0; i < enchantments.size(); i++) {
+                            Enchantment ench = keys.iterator().next();
+                            int enchLvl = enchantments.get(ench);
+                            result.addEnchantment(ench, enchLvl);
+                        }
+                    }
+                    player.getInventory().addItem(result);
+                }
+            }
+        }
+        return newInv;
+    }
     
 }

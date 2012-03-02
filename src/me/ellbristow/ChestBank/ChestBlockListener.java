@@ -41,7 +41,7 @@ public class ChestBlockListener implements Listener {
     public void onBlockIgnite (BlockIgniteEvent event) {
         Block block = event.getBlock();
         if (block.getTypeId() == 54) {
-            // Chest Broken
+            // Chest Ignited
             if (plugin.isBankBlock(block)) {
                 if (event.getCause().equals(IgniteCause.FLINT_AND_STEEL)) {
                     event.getPlayer().sendMessage(ChatColor.RED + "This is a ChestBank and is fireproof!");
