@@ -472,10 +472,12 @@ public class ChestBank extends JavaPlugin {
         }
         if (dropped != 0 || updated != 0) {
             if (dropped != 0) {
-                logger.log(Level.INFO, "{0} orphaned ChestBanks removed!", dropped);
+                String message = dropped + " orphaned ChestBanks removed!";
+                logger.info(message);
             }
             if (updated != 0) {
-                logger.log(Level.INFO, "{0} ChestBanks updated!", updated);
+                String message = updated + " ChestBanks updated!";
+                logger.info(message);
             }
             saveChestBanks();
         }

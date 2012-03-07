@@ -1,8 +1,9 @@
 name: ChestBank
 main: me.ellbristow.ChestBank.ChestBank
-version: 1.3.2
+version: 1.3.3
 author: ellbristow
 dev-url: http://dev.bukkit.org/server-mods/chestbank
+softdepend: [MyWorlds,Multiverse]
 description: >
              Create a private account in a chest, accessible from any other ChestBank.
 commands:
