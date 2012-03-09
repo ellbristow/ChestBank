@@ -23,6 +23,7 @@ permissions:
       chestbank.remove.*: true
       chestbank.see.*: true
       chestbank.free.*: true
+      chestbank.ignore.*: true
 
   chestbank.use.*:
     description: Can use any chestbank on any network
