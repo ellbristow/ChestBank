@@ -334,7 +334,7 @@ public class ChestBankListener implements Listener {
             if (plugin.openInvs != null && plugin.openInvs.containsKey(player.getName())) {
                 if (event.getRawSlot() > 53 && event.getCursor().getTypeId() == 0 && event.getCurrentItem().getTypeId() != 0) {
                     boolean allowed = true;
-                    if (plugin.useWhitelist) {
+                    if (plugin.useWhitelist && !player.hasPermission("chestbank.ignore.whitelist")) {
                         allowed = false;
                         int itemId = event.getCurrentItem().getTypeId();
                         for (String whitelistId : plugin.whitelist) {
@@ -343,7 +343,7 @@ public class ChestBankListener implements Listener {
                             }
                         }
                     }
-                    if (plugin.useBlacklist && allowed) {
+                    if (plugin.useBlacklist && allowed && !player.hasPermission("chestbank.ignore.blacklist")) {
                         int itemId = event.getCurrentItem().getTypeId();
                         for (String blacklistId : plugin.blacklist) {
                             if ((itemId + "").equals(blacklistId)) {
