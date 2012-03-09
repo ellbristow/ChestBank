@@ -728,10 +728,10 @@ public class ChestBank extends JavaPlugin {
                     if (!enchantments.isEmpty()) {
                         chestInv += ":";
                         String enchList = "";
-                        Set<Enchantment> keys = enchantments.keySet();
+                        Object[] keys = enchantments.keySet().toArray();
+                        Object[] levels = enchantments.values().toArray();
                         for (int i = 0; i < enchantments.size(); i++) {
-                            Enchantment ench = keys.iterator().next();
-                            enchList += "," + ench.getId() + "~" + enchantments.get(ench);
+                            enchList += "," + ((Enchantment)keys[i]).getId() + "~" + levels[i];
                         }
                         chestInv += enchList.replaceFirst(",", "");
                     }
