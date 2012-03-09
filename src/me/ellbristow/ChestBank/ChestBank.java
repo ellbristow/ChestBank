@@ -37,6 +37,15 @@ public class ChestBank extends JavaPlugin {
     public int[] limits = {10,25,35};
     public final ChestBankListener playerListener = new ChestBankListener(this);
     public HashMap<String, String> openInvs = new HashMap<String, String>();
+    public boolean useWhitelist = false;
+    public boolean useBlacklist = false;
+    public String[] whitelist = new String[]{"41","264","266","371"};
+    public String[] blacklist = new String[]{"8","9","10","11","51"};
+    public boolean gotVault = false;
+    public boolean gotEconomy = false;
+    public vaultBridge vault;
+    public double createFee;
+    public double useFee;
 
     @Override
     public void onDisable () {
@@ -56,6 +65,48 @@ public class ChestBank extends JavaPlugin {
         limits[2] = 25;
         limits[2] = config.getInt("vip_limit");
         config.set("vip_limit", limits[2]);
+        useWhitelist = config.getBoolean("use_whitelist", false);
+        useBlacklist = config.getBoolean("use_blacklist", false);
+        config.set("use_whitelist", useWhitelist);
+        config.set("use_blacklist", useBlacklist);
+        String whitelistString = config.getString("whitelist", "41,264,266,371");
+        if (useWhitelist) {
+            whitelist = whitelistString.split(",");
+            whitelistString = "";
+            if (whitelist.length != 0) {
+                for(String item : whitelist) {
+                    if (!"".equals(whitelistString)) {
+                        whitelistString += ",";
+                    }
+                    whitelistString += item;
+                }
+            }
+        }
+        config.set("whitelist", whitelistString);
+        String blacklistString = config.getString("blacklist", "8,9,10,11,51");
+        if (useBlacklist) {
+            blacklist = blacklistString.split(",");
+            blacklistString = "";
+            if (blacklist.length != 0) {
+                for(String item : blacklist) {
+                    if (!"".equals(blacklistString)) {
+                        blacklistString += ",";
+                    }
+                    blacklistString += item;
+                }
+            }
+        }
+        config.set("blacklist", blacklistString);
+        if (getServer().getPluginManager().isPluginEnabled("Vault")) {
+            gotVault = true;
+            getLogger().info("[Vault] found and hooked!");
+            vault = new vaultBridge(this);
+            gotEconomy = vault.foundEconomy;
+            createFee = config.getDouble("creation_fee", 0.0);
+            useFee = config.getDouble("transaction_fee", 0.0);
+            config.set("creation_fee", createFee);
+            config.set("transaction_fee", useFee);
+        }
         saveConfig();
         pm.registerEvents(playerListener, this);
         banksConfig = getChestBanks();
@@ -123,6 +174,14 @@ public class ChestBank extends JavaPlugin {
                     player.sendMessage(ChatColor.RED + "That is already a ChestBank!");
                     return true;
                 }
+                if (gotVault && gotEconomy && createFee != 0) {
+                    if ((args.length == 2 && !player.hasPermission("chestbank.free.create.networks")) || (args.length == 1 && !player.hasPermission("chestbank.free.create"))) {
+                        if (vault.economy.getBalance(player.getName()) < createFee) {
+                            player.sendMessage(ChatColor.RED + "You cannot afford the ChestBank creation fee of " + ChatColor.WHITE + vault.economy.format(createFee) + ChatColor.RED + "!");
+                            return true;
+                        }
+                    }
+                }
                 if (args.length == 2) {
                     // Network specified
                     String network = args[1];
@@ -158,6 +217,10 @@ public class ChestBank extends JavaPlugin {
                     banksConfig.set("networks." + args[1] + ".locations", locsList);
                     saveChestBanks();
                     player.sendMessage(ChatColor.GOLD + "ChestBank created on " + ChatColor.WHITE + network + ChatColor.GOLD + " Network!");
+                    if (gotVault && gotEconomy && createFee != 0 && !player.hasPermission("chestbank.free.create.networks")) {
+                        vault.economy.withdrawPlayer(player.getName(), createFee);
+                        player.sendMessage(ChatColor.GOLD + "You were charged " + ChatColor.WHITE + vault.economy.format(createFee) + ChatColor.GOLD + " for ChestBank creation!");
+                    }
                     return true;
                 }
                 String bankList = banksConfig.getString("banks", "");
@@ -174,6 +237,10 @@ public class ChestBank extends JavaPlugin {
                 banksConfig.set("banks", bankList);
                 saveChestBanks();
                 player.sendMessage(ChatColor.GOLD + "ChestBank created!");
+                if (gotVault && gotEconomy && createFee != 0 && !player.hasPermission("chestbank.free.create")) {
+                    vault.economy.withdrawPlayer(player.getName(), createFee);
+                    player.sendMessage(ChatColor.GOLD + "You were charged " + ChatColor.WHITE + vault.economy.format(createFee) + ChatColor.GOLD + " for ChestBank creation!");
+                }
                 return true;
             }
             else if (args[0].equalsIgnoreCase("remove")) {

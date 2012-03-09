@@ -17,6 +17,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.DoubleChestInventory;
@@ -41,17 +42,26 @@ public class ChestBankListener implements Listener {
                         player.sendMessage(ChatColor.RED + "You do not have permission to use network ChestBanks!");
                     }
                     else {
-                        String network = plugin.getNetwork(block);
-                        DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
-                        if (inv != null && inv.getContents().length != 0) {
-                            plugin.openInvs.put(player.getName(), network);
-                            player.openInventory(inv);
-                        } else {
-                            inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
-                            plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
-                            plugin.setAccounts(plugin.chestAccounts);
-                            plugin.openInvs.put(player.getName(), network);
-                            player.openInventory(inv);
+                        boolean allowed = true;
+                        if (plugin.gotVault && plugin.gotEconomy && plugin.useFee != 0 && !player.hasPermission("chestbank.free.use.networks")) {
+                            if (plugin.vault.economy.getBalance(player.getName()) < plugin.useFee) {
+                                player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + plugin.vault.economy.format(plugin.useFee) + ChatColor.RED + "!");
+                                allowed = false;
+                            }
+                        }
+                        if (allowed) {
+                            String network = plugin.getNetwork(block);
+                            DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
+                            if (inv != null && inv.getContents().length != 0) {
+                                plugin.openInvs.put(player.getName(), network);
+                                player.openInventory(inv);
+                            } else {
+                                inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
+                                plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
+                                plugin.setAccounts(plugin.chestAccounts);
+                                plugin.openInvs.put(player.getName(), network);
+                                player.openInventory(inv);
+                            }
                         }
                     }
                     event.setCancelled(true);
@@ -61,16 +71,25 @@ public class ChestBankListener implements Listener {
                         player.sendMessage(ChatColor.RED + "You do not have permission to use ChestBanks!");
                     }
                     else {
-                        DoubleChestInventory inv = plugin.chestAccounts.get(player.getName());
-                        if (inv != null && inv.getContents().length != 0) {
-                            plugin.openInvs.put(player.getName(), "");
-                            player.openInventory(inv);
-                        } else {
-                            inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
-                            plugin.chestAccounts.put(player.getName(), inv);
-                            plugin.setAccounts(plugin.chestAccounts);
-                            plugin.openInvs.put(player.getName(), "");
-                            player.openInventory(inv);
+                        boolean allowed = true;
+                        if (plugin.gotVault && plugin.gotEconomy && plugin.useFee != 0) {
+                            if (plugin.vault.economy.getBalance(player.getName()) < plugin.useFee && !player.hasPermission("chestbank.free.use")) {
+                                player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + plugin.vault.economy.format(plugin.useFee) + ChatColor.RED + "!");
+                                allowed = false;
+                            }
+                        }
+                        if (allowed) {
+                            DoubleChestInventory inv = plugin.chestAccounts.get(player.getName());
+                            if (inv != null && inv.getContents().length != 0) {
+                                plugin.openInvs.put(player.getName(), "");
+                                player.openInventory(inv);
+                            } else {
+                                inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
+                                plugin.chestAccounts.put(player.getName(), inv);
+                                plugin.setAccounts(plugin.chestAccounts);
+                                plugin.openInvs.put(player.getName(), "");
+                                player.openInventory(inv);
+                            }
                         }
                     }
                     event.setCancelled(true);
@@ -101,6 +120,13 @@ public class ChestBankListener implements Listener {
                 plugin.setAccounts(plugin.chestAccounts);
             }
             player.sendMessage(ChatColor.GRAY + "ChestBank Inventory Saved!");
+            if (plugin.gotVault && plugin.gotEconomy && plugin.useFee != 0) {
+                if ((network.equals("") && !player.hasPermission("chestbank.free.use")) || (!network.equals("") && !player.hasPermission("chestbank.free.use.networks"))) {
+                    plugin.vault.economy.withdrawPlayer(player.getName(), plugin.useFee);
+                    player.sendMessage(ChatColor.GOLD + "Thank you for using ChestBank!");
+                    player.sendMessage(ChatColor.GOLD + "This transaction cost you " + ChatColor.WHITE + plugin.vault.economy.format(plugin.useFee) + ChatColor.GOLD + "!");
+                }
+            }
         }
     }
     
@@ -298,6 +324,44 @@ public class ChestBankListener implements Listener {
         }
         if (!saveBanks.isEmpty()) {
                 event.blockList().removeAll(saveBanks);
+        }
+    }
+    
+    @EventHandler (priority = EventPriority.NORMAL)
+    public void onInventoryClick (InventoryClickEvent event) {
+        if (!event.isCancelled()) {
+            Player player = (Player)event.getWhoClicked();
+            if (plugin.openInvs != null && plugin.openInvs.containsKey(player.getName())) {
+                if (event.getRawSlot() > 53 && event.getCursor().getTypeId() == 0 && event.getCurrentItem().getTypeId() != 0) {
+                    boolean allowed = true;
+                    if (plugin.useWhitelist) {
+                        allowed = false;
+                        int itemId = event.getCurrentItem().getTypeId();
+                        for (String whitelistId : plugin.whitelist) {
+                            if ((itemId + "").equals(whitelistId)) {
+                                allowed = true;
+                            }
+                        }
+                    }
+                    if (plugin.useBlacklist && allowed) {
+                        int itemId = event.getCurrentItem().getTypeId();
+                        for (String blacklistId : plugin.blacklist) {
+                            if ((itemId + "").equals(blacklistId)) {
+                                allowed = false;
+                            }
+                        }
+                    }
+                    if (!allowed) {
+                        player.sendMessage(ChatColor.RED + "You cannot deposit that item in a ChestBank!");
+                        event.setCancelled(true);
+                    } else {
+                        if (getUsedSlots((DoubleChestInventory)event.getInventory()) >= getAllowedSlots(player)) {
+                            player.sendMessage(ChatColor.RED + "Your ChestBank is Full!");
+                            event.setCancelled(true);
+                        }
+                    }
+                }
+            }
         }
     }
     

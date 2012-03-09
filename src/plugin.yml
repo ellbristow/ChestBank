@@ -1,9 +1,9 @@
 name: ChestBank
 main: me.ellbristow.ChestBank.ChestBank
-version: 1.3.4
+version: 1.4
 author: ellbristow
 dev-url: http://dev.bukkit.org/server-mods/chestbank
-softdepend: [My Worlds,Multiverse,WhooshingWell]
+softdepend: [Vault,My Worlds,Multiverse,WhooshingWell]
 description: >
              Create a private account in a chest, accessible from any other ChestBank.
 commands:
@@ -16,28 +16,34 @@ permissions:
   chestbank.*:
     description: Access to all ChestBank permissions
     children:
-      chestbank.use: true
-      chestbank.use.networks: true
-      chestbank.create: true
-      chestbank.create.networks: true
       chestbank.info: true
       chestbank.list: true
-      chestbank.remove: true
-      chestbank.remove.networks: true
-      chestbank.see: true
-      chestbank.see.networks: true
+      chestbank.use.*: true
+      chestbank.create.*: true
+      chestbank.remove.*: true
+      chestbank.see.*: true
 
+  chestbank.use.*:
+    description: Can use any chestbank on any network
+    children:
+      chestbank.use: true
+      chestbank.use.networks: true
   chestbank.use:
-    description: Can use ChestBanks.
+    description: Can use ChestBanks on the default network
   chestbank.use.networks:
-    description: Can use ChestBanks on alternate networks
+    description: Can use ChestBanks on alternative networks
 
 # Command Permissions
 
+  chestbank.create.*:
+    description: Can create any chestbank on any network
+    children:
+      chestbank.create: true
+      chestbank.create.networks: true
   chestbank.create:
-    description: Can create a ChestBank.
+    description: Can create a ChestBank on the default network
   chestbank.create.networks:
-    description: Can create a ChestBank on an alternate networks
+    description: Can create a ChestBank on an alternative networks
 
   chestbank.info:
     description: Access to the /cb info command
@@ -45,11 +51,21 @@ permissions:
   chestbank.list:
     description: Access to the /cb list command
 
+  chestbank.remove.*:
+    description: Can remove any chestbank on any network
+    children:
+      chestbank.remove: true
+      chestbank.remove.networks: true
   chestbank.remove:
-    description: Can remove a ChestBank.
+    description: Can remove a ChestBank on the default network
   chestbank.remove.networks:
-    description: Can remove a ChestBank on an alternate networks
+    description: Can remove a ChestBank on an alternative networks
 
+  chestbank.see.*:
+    description: Can see anyones chestbank account on any network
+    children:
+      chestbank.see: true
+      chestbank.see.networks: true
   chestbank.see:
     description: (For Mods) Can access other players accounts.
   chestbank.see.networks:
@@ -68,3 +84,41 @@ permissions:
   chestbank.limited.vip:
     description: Uses the "vip" limit
     default: false
+
+# Whitelist/Blacklist Permissions
+
+  chestbank.ignore.*:
+    description: Can ignore blacklist and whitelist restrictions
+    children:
+      chestbank.ignore.whitelist: true
+      chestbank.ignore.blacklist: true
+  chestbank.ignore.whitelist:
+    description: Can ignore whitelist restrictions
+  chestbank.ignore.blacklist:
+    description: Can ignore blacklist restrictions
+    
+# Economy Permissions
+
+  chestbank.free.*:
+    description: Can create and use chestbanks on any network for free
+    children:
+      chestbank.free.create.*: true
+      chestbank.free.use.*: true
+  chestbank.free.create.*:
+    description: Can create ChestBanks on any network for free
+    children:
+      chestbank.free.create: true
+      chestbank.free.create.networks: true
+  chestbank.free.create:
+    description: Can create ChestBanks for free
+  chestbank.free.create.networks:
+    description: Can create ChestBanks on alternative networks for free
+  chestbank.free.use.*:
+    description: Can use ChestBanks on any network for free
+    children:
+      chestbank.free.use: true
+      chestbank.free.use.networks: true  
+  chestbank.free.use:
+    description: Can use ChestBanks for free
+  chestbank.free.use:
+    description: Can use ChestBanks on alternative networks for free
