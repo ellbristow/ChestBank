@@ -284,7 +284,7 @@ public class ChestBank extends JavaPlugin {
                             int bankA = Integer.parseInt(loc[4]);
                             int bankB = Integer.parseInt(loc[5]);
                             int bankC = Integer.parseInt(loc[6]);
-                            if (!bankWorld.equals(block.getWorld().getName()) || (!(bankX != block.getX() && bankY != block.getY() && bankZ != block.getZ()) && !(bankA != block.getX() && bankB != block.getY() && bankC != block.getZ()) )) {
+                            if (!bankWorld.equals(block.getWorld().getName()) || (!(bankX == block.getX() && bankY == block.getY() && bankZ == block.getZ()) && !(bankA == block.getX() && bankB == block.getY() && bankC == block.getZ()) )) {
                                 if (!newNetworkLocs.equals("")) {
                                     newNetworkLocs += ";";
                                 }
