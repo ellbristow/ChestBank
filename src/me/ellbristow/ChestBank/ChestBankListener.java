@@ -178,7 +178,7 @@ public class ChestBankListener implements Listener {
                         for (int i = 0; i < enchantments.size(); i++) {
                             Enchantment ench = keys.iterator().next();
                             int enchLvl = enchantments.get(ench);
-                            result.addEnchantment(ench, enchLvl);
+                            result.addUnsafeEnchantment(ench, enchLvl);
                         }
                     }
                     player.getInventory().addItem(result);

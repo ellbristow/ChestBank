@@ -566,7 +566,7 @@ public class ChestBank extends JavaPlugin {
                                     String[] bits = ench.split("~");
                                     int enchId = Integer.parseInt(bits[0]);
                                     int enchLvl = Integer.parseInt(bits[1]);
-                                    stack.addEnchantment(Enchantment.getById(enchId), enchLvl);
+                                    stack.addUnsafeEnchantment(Enchantment.getById(enchId), enchLvl);
                                 }
                             }
                             returnInv.setItem(i, stack);
