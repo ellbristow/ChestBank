@@ -43,6 +43,7 @@ public class ChestBank extends JavaPlugin {
     public String[] blacklist = new String[]{"8","9","10","11","51"};
     public boolean gotVault = false;
     public boolean gotEconomy = false;
+    public boolean useNetworkPerms = false;
     public vaultBridge vault;
     public double createFee;
     public double useFee;
@@ -67,8 +68,10 @@ public class ChestBank extends JavaPlugin {
         config.set("vip_limit", limits[2]);
         useWhitelist = config.getBoolean("use_whitelist", false);
         useBlacklist = config.getBoolean("use_blacklist", false);
+        useNetworkPerms = config.getBoolean("use_network_perms", false);
         config.set("use_whitelist", useWhitelist);
         config.set("use_blacklist", useBlacklist);
+        config.set("use_network_perms", useNetworkPerms);
         String whitelistString = config.getString("whitelist", "41,264,266,371");
         if (useWhitelist) {
             whitelist = whitelistString.split(",");
