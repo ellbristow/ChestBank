@@ -44,7 +44,7 @@ public class ChestBankListener implements Listener {
                     else {
                         boolean allowed = true;
                         String network = plugin.getNetwork(block);
-                        if(plugin.useNetworkPerms == true && !player.hasPermissions("chestbank.use.network." + network))
+                        if(plugin.useNetworkPerms == true && !player.hasPermission("chestbank.use.network." + network))
                         {
                         	player.sendMessage(ChatColor.RED + "You are not allowed to use that ChestBank!");
                         	return;
