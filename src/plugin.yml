@@ -1,6 +1,6 @@
 name: ChestBank
 main: me.ellbristow.ChestBank.ChestBank
-version: 1.4.5
+version: 1.5.0
 author: ellbristow
 dev-url: http://dev.bukkit.org/server-mods/chestbank
 softdepend: [Vault,My Worlds,Multiverse,WhooshingWell]
@@ -30,10 +30,13 @@ permissions:
     children:
       chestbank.use: true
       chestbank.use.networks: true
+      chestbank.use.networks.*: true
   chestbank.use:
     description: Can use ChestBanks on the default network
   chestbank.use.networks:
-    description: Can use ChestBanks on alternative networks
+    description: Can use ChestBanks on named networks
+  chestbank.use.networks.*:
+    description: Can use ChestBanks on all named networks (if using use_network_perms option)
 
 # Command Permissions
 
@@ -42,10 +45,13 @@ permissions:
     children:
       chestbank.create: true
       chestbank.create.networks: true
+      chestbank.create.networks.*: true
   chestbank.create:
     description: Can create a ChestBank on the default network
   chestbank.create.networks:
-    description: Can create a ChestBank on an alternative networks
+    description: Can create a ChestBank on named networks
+  chestbank.create.networks:
+    description: Can create a ChestBank on all named networks (if using use_network_perms option)
 
   chestbank.info:
     description: Access to the /cb info command
@@ -58,10 +64,13 @@ permissions:
     children:
       chestbank.remove: true
       chestbank.remove.networks: true
+      chestbank.remove.networks.*: true
   chestbank.remove:
     description: Can remove a ChestBank on the default network
   chestbank.remove.networks:
-    description: Can remove a ChestBank on an alternative networks
+    description: Can remove a ChestBank on an named networks
+  chestbank.remove.networks.*:
+    description: Can remove a ChestBank on an all named networks (if using use_network_perms option)
 
   chestbank.see.*:
     description: Can see anyones chestbank account on any network

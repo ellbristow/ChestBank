@@ -23,6 +23,10 @@
 # whitelist : Item ID's of whitelisted items (seperated with commas, no spaces)
 # use_blacklist : Should the blacklist be used. (Blacklisted items are not allowed, overrides whitelist)
 # blackist : Blacklisted item IDs (seperated with commas, no spaces)
+# 
+# Network Usage
+# =============
+# use_network_perms: Do players need specific permissions to use netoworks? (i.e. chestbank.use.networks.{network name})
 
 normal_limit: 10
 elevated_limit: 25
@@ -33,3 +37,4 @@ use_whitelist: false
 whitelist: 41,266,264,371
 use_blacklist: false
 blacklist: 8,9,10,11
+use_network_perms: false

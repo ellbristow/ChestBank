@@ -22,6 +22,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -114,6 +115,9 @@ public class ChestBank extends JavaPlugin {
         pm.registerEvents(playerListener, this);
         banksConfig = getChestBanks();
         chestAccounts = getAccounts();
+        if (useNetworkPerms) {
+            registerNetworkPerms();
+        }
     }
 	
     @Override
@@ -137,7 +141,7 @@ public class ChestBank extends JavaPlugin {
             if (player.hasPermission("chestbank.create")) {
                 player.sendMessage(ChatColor.GOLD + "  /chestbank create " + ChatColor.GRAY + ": Make targetted chest a ChestBank.");
             }
-            if (player.hasPermission("chestbank.create.networks")) {
+            if ((!useNetworkPerms && player.hasPermission("chestbank.create.networks")) || useNetworkPerms) {
                 player.sendMessage(ChatColor.GOLD + "  /chestbank create {network}" + ChatColor.GRAY + ": Create a Chestbank on the");
                 player.sendMessage(ChatColor.GRAY + "                                named network.");
             }
@@ -163,8 +167,12 @@ public class ChestBank extends JavaPlugin {
                     player.sendMessage(ChatColor.RED + "You do not have permission to create a ChestBank!");
                     return true;
                 }
-                if (args.length == 2 && !player.hasPermission("chestbank.create.networks")) {
-                    player.sendMessage(ChatColor.RED + "You do not have permission to create a ChestBank on an alternate network!");
+                if (args.length == 2 && useNetworkPerms && (!player.hasPermission("chestbank.create.networks." + args[1].toLowerCase()) && !player.hasPermission("chestbank.create.networks.*"))) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to create a ChestBank on the");
+                    player.sendMessage(ChatColor.WHITE + args[1].toLowerCase() + ChatColor.RED + " network!");
+                    return true;
+                } else if (args.length == 2 && !useNetworkPerms && !player.hasPermission("chestbank.create.networks")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to create a ChestBank on named   networks!");
                     return true;
                 }
                 Block block = player.getTargetBlock(null, 4);
@@ -179,7 +187,8 @@ public class ChestBank extends JavaPlugin {
                 if (gotVault && gotEconomy && createFee != 0) {
                     if ((args.length == 2 && !player.hasPermission("chestbank.free.create.networks")) || (args.length == 1 && !player.hasPermission("chestbank.free.create"))) {
                         if (vault.economy.getBalance(player.getName()) < createFee) {
-                            player.sendMessage(ChatColor.RED + "You cannot afford the ChestBank creation fee of " + ChatColor.WHITE + vault.economy.format(createFee) + ChatColor.RED + "!");
+                            player.sendMessage(ChatColor.RED + "You cannot afford the ChestBank creation fee of");
+                            player.sendMessage(ChatColor.WHITE + vault.economy.format(createFee) + ChatColor.RED + "!");
                             return true;
                         }
                     }
@@ -251,8 +260,12 @@ public class ChestBank extends JavaPlugin {
                     return true;
                 }
                 Block block = player.getTargetBlock(null, 4);
-                if (isNetworkBank(block) && !player.hasPermission("chestbank.remove.networks")) {
-                    player.sendMessage(ChatColor.RED + "You do not have permission to remove a ChestBank on an alternate network!");
+                if (isNetworkBank(block) && useNetworkPerms && (!player.hasPermission("chestbank.remove.networks." + getNetwork(block).toLowerCase()) && !player.hasPermission("chestbank.remove.networks.*"))) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to remove a ChestBank on the");
+                    player.sendMessage(ChatColor.WHITE + getNetwork(block) + ChatColor.RED + " network!");
+                    return true;
+                } else if (isNetworkBank(block) && !useNetworkPerms && !player.hasPermission("chestbank.remove.networks")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to remove a ChestBank on named networks!");
                     return true;
                 }
                 if (!isBankBlock(block)) {
@@ -614,6 +627,18 @@ public class ChestBank extends JavaPlugin {
             banksConfig.set("accounts." + key, chestInv.replaceFirst(";", ""));
         }
         saveChestBanks();
+    }
+    
+    private void registerNetworkPerms() {
+        String networksString = this.banksConfig.getString("networks.names", "");
+        if (!"".equals(networksString)) {
+            String[] networks = networksString.split(",");
+            for (String network : networks) {
+                getServer().getPluginManager().addPermission(new Permission("chectbank.use.networks." + network.toLowerCase()));
+                getServer().getPluginManager().addPermission(new Permission("chectbank.create.networks." + network.toLowerCase()));
+                getServer().getPluginManager().addPermission(new Permission("chectbank.remove.networks." + network.toLowerCase()));
+            }
+        }
     }
 	
     public void loadChestBanks() {

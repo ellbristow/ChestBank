@@ -38,36 +38,32 @@ public class ChestBankListener implements Listener {
                 Block block = event.getClickedBlock();
                 if (block.getTypeId() == 54 && plugin.isNetworkBank(block)) {
                     Player player = event.getPlayer();
-                    if (!player.hasPermission("chestbank.use.networks")) {
-                        player.sendMessage(ChatColor.RED + "You do not have permission to use network ChestBanks!");
+                    boolean allowed = true;
+                    String network = plugin.getNetwork(block);
+                    if (plugin.useNetworkPerms == true && (!player.hasPermission("chestbank.use.networks." + network.toLowerCase()) && !player.hasPermission("chestbank.use.networks.*")))
+                    {
+                        player.sendMessage(ChatColor.RED + "You are not allowed to use ChestBanks on the " + ChatColor.WHITE + network + ChatColor.RED + " network!");
+                        allowed = false;
+                    } else if (!plugin.useNetworkPerms && !player.hasPermission("chestbank.use.networks")) {
+                        player.sendMessage(ChatColor.RED + "You are not allowed to use ChestBanks on named networks!");
+                        allowed = false;
+                    } else if (plugin.gotVault && plugin.gotEconomy && plugin.useFee != 0 && !player.hasPermission("chestbank.free.use.networks")) {
+                        if (plugin.vault.economy.getBalance(player.getName()) < plugin.useFee) {
+                            player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + plugin.vault.economy.format(plugin.useFee) + ChatColor.RED + "!");
+                            allowed = false;
+                        }
                     }
-                    else {
-                        boolean allowed = true;
-                        String network = plugin.getNetwork(block);
-                        if(plugin.useNetworkPerms == true && !player.hasPermission("chestbank.use.network." + network))
-                        {
-                        	player.sendMessage(ChatColor.RED + "You are not allowed to use that ChestBank!");
-                        	event.setCancelled(true);
-                        	return;
-                        }
-                        if (plugin.gotVault && plugin.gotEconomy && plugin.useFee != 0 && !player.hasPermission("chestbank.free.use.networks")) {
-                            if (plugin.vault.economy.getBalance(player.getName()) < plugin.useFee) {
-                                player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + plugin.vault.economy.format(plugin.useFee) + ChatColor.RED + "!");
-                                allowed = false;
-                            }
-                        }
-                        if (allowed) {
-                            DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
-                            if (inv != null && inv.getContents().length != 0) {
-                                plugin.openInvs.put(player.getName(), network);
-                                player.openInventory(inv);
-                            } else {
-                                inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
-                                plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
-                                plugin.setAccounts(plugin.chestAccounts);
-                                plugin.openInvs.put(player.getName(), network);
-                                player.openInventory(inv);
-                            }
+                    if (allowed) {
+                        DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
+                        if (inv != null && inv.getContents().length != 0) {
+                            plugin.openInvs.put(player.getName(), network);
+                            player.openInventory(inv);
+                        } else {
+                            inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
+                            plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
+                            plugin.setAccounts(plugin.chestAccounts);
+                            plugin.openInvs.put(player.getName(), network);
+                            player.openInventory(inv);
                         }
                     }
                     event.setCancelled(true);
@@ -229,23 +225,19 @@ public class ChestBankListener implements Listener {
             int blockY = block.getY();
             int blockZ = block.getZ();
             if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ)) || plugin.isNetworkBank(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ)) || plugin.isNetworkBank(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1)) || plugin.isNetworkBank(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1))) {
+                // Find Network
+                String network = "";
+                if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ))) {
+                    network = plugin.getNetwork(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ));
+                } else if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ))) {
+                    network = plugin.getNetwork(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ));
+                } else if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1))) {
+                    network = plugin.getNetwork(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1));
+                } else if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1))) {
+                    network = plugin.getNetwork(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1));
+                }
                 Player player = event.getPlayer();
-                if (player.hasPermission("chestbank.create.networks")) {
-                    String network = "";
-                    String bankNames = plugin.banksConfig.getString("networks.names", "");
-                    for (String bankName : bankNames.split(":")) {
-                        String bankLocs = plugin.banksConfig.getString("networks." + bankName + ".locations", "");
-                        for (String bankLoc : bankLocs.split(";")) {
-                            String[] loc = bankLoc.split(":");
-                            String bankWorld = loc[0];
-                            int bankX = Integer.parseInt(loc[1]);
-                            int bankY = Integer.parseInt(loc[2]);
-                            int bankZ = Integer.parseInt(loc[3]);
-                            if (blockWorld.equals(bankWorld) && ((blockX + 1 == bankX && blockY == bankY && blockZ == bankZ) || (blockX - 1 == bankX && blockY == bankY && blockZ == bankZ) || (blockX == bankX && blockY == bankY && blockZ + 1 == bankZ) || (blockX == bankX && blockY == bankY && blockZ -1 == bankZ ))) {
-                                network = bankName;
-                            }
-                        }
-                    }
+                if ((plugin.useNetworkPerms && (player.hasPermission("chestbank.create.networks." + network.toLowerCase()) || player.hasPermission("chestbank.create.networks.*"))) || (!plugin.useNetworkPerms && player.hasPermission("chestbank.create.networks"))) {
                     ConfigurationSection networkBank = plugin.banksConfig.getConfigurationSection("networks." + network);
                     String locsList = networkBank.getString("locations", "");
                     String[] bankSplit = locsList.split(";");
