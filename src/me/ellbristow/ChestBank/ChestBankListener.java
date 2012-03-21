@@ -43,6 +43,13 @@ public class ChestBankListener implements Listener {
                     }
                     else {
                         boolean allowed = true;
+                        String network = plugin.getNetwork(block);
+                        if(plugin.useNetworkPerms == true && !player.hasPermission("chestbank.use.network." + network))
+                        {
+                        	player.sendMessage(ChatColor.RED + "You are not allowed to use that ChestBank!");
+                        	event.setCancelled(true);
+                        	return;
+                        }
                         if (plugin.gotVault && plugin.gotEconomy && plugin.useFee != 0 && !player.hasPermission("chestbank.free.use.networks")) {
                             if (plugin.vault.economy.getBalance(player.getName()) < plugin.useFee) {
                                 player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + plugin.vault.economy.format(plugin.useFee) + ChatColor.RED + "!");
@@ -50,7 +57,6 @@ public class ChestBankListener implements Listener {
                             }
                         }
                         if (allowed) {
-                            String network = plugin.getNetwork(block);
                             DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
                             if (inv != null && inv.getContents().length != 0) {
                                 plugin.openInvs.put(player.getName(), network);
