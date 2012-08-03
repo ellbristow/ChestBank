@@ -1,6 +1,6 @@
 name: ChestBank
 main: me.ellbristow.ChestBank.ChestBank
-version: 1.5.0
+version: 1.6.0
 author: ellbristow
 dev-url: http://dev.bukkit.org/server-mods/chestbank
 softdepend: [Vault,My Worlds,Multiverse,WhooshingWell]
@@ -33,6 +33,7 @@ permissions:
       chestbank.use.networks.*: true
   chestbank.use:
     description: Can use ChestBanks on the default network
+    default: true
   chestbank.use.networks:
     description: Can use ChestBanks on named networks
   chestbank.use.networks.*:
