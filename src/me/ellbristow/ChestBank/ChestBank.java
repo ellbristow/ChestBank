@@ -134,25 +134,32 @@ public class ChestBank extends JavaPlugin {
             boolean found = false;
             if (player.hasPermission("chestbank.info")) {
                 player.sendMessage(ChatColor.GOLD + "  /chestbank info " + ChatColor.GRAY + ": Get targetted ChestBank's info.");
+                found = true;
             }
             if (player.hasPermission("chestbank.list")) {
                 player.sendMessage(ChatColor.GOLD + "  /chestbank list " + ChatColor.GRAY + ": List all existing ChestBank networks.");
+                found = true;
             }
             if (player.hasPermission("chestbank.create")) {
                 player.sendMessage(ChatColor.GOLD + "  /chestbank create " + ChatColor.GRAY + ": Make targetted chest a ChestBank.");
+                found = true;
             }
             if ((!useNetworkPerms && player.hasPermission("chestbank.create.networks")) || useNetworkPerms) {
                 player.sendMessage(ChatColor.GOLD + "  /chestbank create {network}" + ChatColor.GRAY + ": Create a Chestbank on the");
-                player.sendMessage(ChatColor.GRAY + "                                named network.");
+                player.sendMessage(ChatColor.GRAY + "                                        named network.");
+                found = true;
             }
             if (player.hasPermission("chestbank.remove")) {
                 player.sendMessage(ChatColor.GOLD + "  /chestbank remove " + ChatColor.GRAY + ": Make targetted ChestBank a chest.");
+                found = true;
             }
             if (player.hasPermission("chestbank.see")) {
                 player.sendMessage(ChatColor.GOLD + "  /chestbank see [player] " + ChatColor.GRAY + ": View player's ChestBank account.");
+                found = true;
             }
             if (!found) {
                 player.sendMessage(ChatColor.GOLD + "There are no ChestBank commands you can use!");
+                found = true;
             }
             return true;
         }
