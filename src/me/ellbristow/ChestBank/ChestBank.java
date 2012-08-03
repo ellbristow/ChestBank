@@ -159,7 +159,6 @@ public class ChestBank extends JavaPlugin {
             }
             if (!found) {
                 player.sendMessage(ChatColor.GOLD + "There are no ChestBank commands you can use!");
-                found = true;
             }
             return true;
         }
