@@ -1,12 +1,11 @@
 package me.ellbristow.ChestBank;
 
 import java.util.*;
-import net.minecraft.server.InventoryLargeChest;
-import net.minecraft.server.TileEntityChest;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,7 +19,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class ChestBankListener implements Listener {
@@ -36,7 +35,7 @@ public class ChestBankListener implements Listener {
         if (!event.isCancelled()) { 
             if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
                 Block block = event.getClickedBlock();
-                if (block.getTypeId() == 54 && plugin.isNetworkBank(block)) {
+                if ((block.getType().equals(Material.CHEST) || block.getType().equals(Material.ENDER_CHEST)) && plugin.isNetworkBank(block)) {
                     Player player = event.getPlayer();
                     boolean allowed = true;
                     String network = plugin.getNetwork(block);
@@ -54,12 +53,12 @@ public class ChestBankListener implements Listener {
                         }
                     }
                     if (allowed) {
-                        DoubleChestInventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
+                        Inventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
                         if (inv != null && inv.getContents().length != 0) {
                             plugin.openInvs.put(player.getName(), network);
                             player.openInventory(inv);
                         } else {
-                            inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
+                            inv = Bukkit.createInventory(player, 54, player.getName());
                             plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
                             plugin.setAccounts(plugin.chestAccounts);
                             plugin.openInvs.put(player.getName(), network);
@@ -67,7 +66,7 @@ public class ChestBankListener implements Listener {
                         }
                     }
                     event.setCancelled(true);
-                } else if (block.getTypeId() == 54 && plugin.isBankBlock(block)) {
+                } else if ((block.getType().equals(Material.CHEST) || block.getType().equals(Material.ENDER_CHEST)) && plugin.isBankBlock(block)) {
                     Player player = event.getPlayer();
                     if (!player.hasPermission("chestbank.use")) {
                         player.sendMessage(ChatColor.RED + "You do not have permission to use ChestBanks!");
@@ -81,12 +80,12 @@ public class ChestBankListener implements Listener {
                             }
                         }
                         if (allowed) {
-                            DoubleChestInventory inv = plugin.chestAccounts.get(player.getName());
+                            Inventory inv = plugin.chestAccounts.get(player.getName());
                             if (inv != null && inv.getContents().length != 0) {
                                 plugin.openInvs.put(player.getName(), "");
                                 player.openInventory(inv);
                             } else {
-                                inv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
+                                inv = Bukkit.createInventory(player, 54, player.getName());
                                 plugin.chestAccounts.put(player.getName(), inv);
                                 plugin.setAccounts(plugin.chestAccounts);
                                 plugin.openInvs.put(player.getName(), "");
@@ -106,7 +105,7 @@ public class ChestBankListener implements Listener {
         if (plugin.openInvs != null && plugin.openInvs.containsKey(player.getName())) {
             String network = plugin.openInvs.get(event.getPlayer().getName());
             plugin.openInvs.remove(event.getPlayer().getName());
-            DoubleChestInventory inv = (DoubleChestInventory)event.getInventory();
+            Inventory inv = event.getInventory();
             int allowed = getAllowedSlots(player);
             if (getUsedSlots(inv) > allowed) {
                 player.sendMessage(ChatColor.RED + "Sorry! You may only use " + ChatColor.WHITE + allowed + ChatColor.RED + " ChestBank slot(s)!");
@@ -132,7 +131,7 @@ public class ChestBankListener implements Listener {
         }
     }
     
-    private int getUsedSlots(DoubleChestInventory inv) {
+    private int getUsedSlots(Inventory inv) {
         ItemStack[] contents = inv.getContents();
         int count = 0;
         for (ItemStack stack : contents) {
@@ -160,10 +159,10 @@ public class ChestBankListener implements Listener {
         return limit;
     }
     
-    private DoubleChestInventory trimExcess(Player player, DoubleChestInventory inv) {
+    private Inventory trimExcess(Player player, Inventory inv) {
         int allowed = getAllowedSlots(player);
         int newInvCount = 0;
-        DoubleChestInventory newInv = new CraftInventoryDoubleChest(new InventoryLargeChest(player.getName(), new TileEntityChest(), new TileEntityChest()));
+        Inventory newInv = Bukkit.createInventory(player, 54, player.getName());
         for (ItemStack stack : inv.getContents()) {
             if (stack != null) {
                 if (newInvCount < allowed) {
@@ -193,7 +192,7 @@ public class ChestBankListener implements Listener {
     @EventHandler (priority = EventPriority.NORMAL)
     public void onBlockBreak (BlockBreakEvent event) {
         Block block = event.getBlock();
-        if (block.getTypeId() == 54) {
+        if (block.getType().equals(Material.CHEST) || block.getType().equals(Material.ENDER_CHEST)) {
             // Chest Broken
             if (plugin.isBankBlock(block)) {
                 event.getPlayer().sendMessage(ChatColor.RED + "This is a ChestBank and cannot be destroyed!");
@@ -205,7 +204,7 @@ public class ChestBankListener implements Listener {
     @EventHandler (priority = EventPriority.NORMAL)
     public void onBlockIgnite (BlockIgniteEvent event) {
         Block block = event.getBlock();
-        if (block.getTypeId() == 54) {
+        if (block.getType().equals(Material.CHEST) || block.getType().equals(Material.ENDER_CHEST)) {
             // Chest Ignited
             if (plugin.isBankBlock(block)) {
                 if (event.getCause().equals(BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL)) {
@@ -219,7 +218,7 @@ public class ChestBankListener implements Listener {
     @EventHandler (priority = EventPriority.NORMAL)
     public void onBlockPlace (BlockPlaceEvent event) {
         Block block = event.getBlock();
-        if (block.getTypeId() == 54) {
+        if (block.getType().equals(Material.CHEST)) {
             String blockWorld = block.getWorld().getName();
             int blockX = block.getX();
             int blockY = block.getY();
@@ -227,14 +226,22 @@ public class ChestBankListener implements Listener {
             if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ)) || plugin.isNetworkBank(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ)) || plugin.isNetworkBank(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1)) || plugin.isNetworkBank(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1))) {
                 // Find Network
                 String network = "";
+                Block neighbourBlock = null;
                 if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ))) {
-                    network = plugin.getNetwork(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ));
+                    neighbourBlock = block.getWorld().getBlockAt(blockX + 1, blockY, blockZ);
+                    network = plugin.getNetwork(neighbourBlock);
                 } else if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ))) {
-                    network = plugin.getNetwork(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ));
+                    neighbourBlock = block.getWorld().getBlockAt(blockX - 1, blockY, blockZ);
+                    network = plugin.getNetwork(neighbourBlock);
                 } else if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1))) {
-                    network = plugin.getNetwork(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1));
+                    neighbourBlock = block.getWorld().getBlockAt(blockX, blockY, blockZ + 1);
+                    network = plugin.getNetwork(neighbourBlock);
                 } else if (plugin.isNetworkBank(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1))) {
-                    network = plugin.getNetwork(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1));
+                    neighbourBlock = block.getWorld().getBlockAt(blockX, blockY, blockZ - 1);
+                    network = plugin.getNetwork(neighbourBlock);
+                }
+                if (neighbourBlock.getType().equals(Material.ENDER_CHEST)) {
+                    return;
                 }
                 Player player = event.getPlayer();
                 if ((plugin.useNetworkPerms && (player.hasPermission("chestbank.create.networks." + network.toLowerCase()) || player.hasPermission("chestbank.create.networks.*"))) || (!plugin.useNetworkPerms && player.hasPermission("chestbank.create.networks"))) {
@@ -273,6 +280,19 @@ public class ChestBankListener implements Listener {
             }
             if (plugin.isBankBlock(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ)) || plugin.isBankBlock(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ)) || plugin.isBankBlock(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1)) || plugin.isBankBlock(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1))) {
                 Player player = event.getPlayer();
+                Block neighbourBlock = null;
+                if (plugin.isBankBlock(block.getWorld().getBlockAt(blockX + 1, blockY, blockZ))) {
+                    neighbourBlock = block.getWorld().getBlockAt(blockX + 1, blockY, blockZ);
+                } else if (plugin.isBankBlock(block.getWorld().getBlockAt(blockX - 1, blockY, blockZ))) {
+                    neighbourBlock = block.getWorld().getBlockAt(blockX - 1, blockY, blockZ);
+                } else if (plugin.isBankBlock(block.getWorld().getBlockAt(blockX, blockY, blockZ + 1))) {
+                    neighbourBlock = block.getWorld().getBlockAt(blockX, blockY, blockZ + 1);
+                } else if (plugin.isBankBlock(block.getWorld().getBlockAt(blockX, blockY, blockZ - 1))) {
+                    neighbourBlock = block.getWorld().getBlockAt(blockX, blockY, blockZ - 1);
+                }
+                if (neighbourBlock.getType().equals(Material.ENDER_CHEST)) {
+                    return;
+                }
                 if (player.hasPermission("chestbank.create")) {
                     String bankList = plugin.banksConfig.getString("banks", "");
                     String[] bankSplit = bankList.split(";");
@@ -353,7 +373,7 @@ public class ChestBankListener implements Listener {
                         player.sendMessage(ChatColor.RED + "You cannot deposit that item in a ChestBank!");
                         event.setCancelled(true);
                     } else {
-                        if (getUsedSlots((DoubleChestInventory)event.getInventory()) >= getAllowedSlots(player)) {
+                        if (getUsedSlots(event.getInventory()) >= getAllowedSlots(player)) {
                             player.sendMessage(ChatColor.RED + "Your ChestBank is Full!");
                             event.setCancelled(true);
                         }

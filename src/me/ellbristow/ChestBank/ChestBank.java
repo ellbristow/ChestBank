@@ -5,11 +5,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import net.minecraft.server.InventoryLargeChest;
-import net.minecraft.server.TileEntityChest;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
@@ -17,10 +15,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -29,25 +26,25 @@ import org.bukkit.plugin.java.JavaPlugin;
         
 public class ChestBank extends JavaPlugin {
 	
-    public static ChestBank plugin;
-    public static Logger logger;
-    public FileConfiguration banksConfig;
-    public FileConfiguration config;
+    protected static ChestBank plugin;
+    protected FileConfiguration banksConfig;
+    protected FileConfiguration config;
     private File bankFile = null;
-    public HashMap<String, DoubleChestInventory> chestAccounts;
-    public int[] limits = {10,25,35};
-    public final ChestBankListener playerListener = new ChestBankListener(this);
-    public HashMap<String, String> openInvs = new HashMap<String, String>();
-    public boolean useWhitelist = false;
-    public boolean useBlacklist = false;
-    public String[] whitelist = new String[]{"41","264","266","371"};
-    public String[] blacklist = new String[]{"8","9","10","11","51"};
-    public boolean gotVault = false;
-    public boolean gotEconomy = false;
-    public boolean useNetworkPerms = false;
-    public vaultBridge vault;
-    public double createFee;
-    public double useFee;
+    protected HashMap<String, Inventory> chestAccounts;
+    protected int[] limits = {10,25,35};
+    protected final ChestBankListener playerListener = new ChestBankListener(this);
+    protected HashMap<String, String> openInvs = new HashMap<String, String>();
+    protected boolean useWhitelist = false;
+    protected boolean useBlacklist = false;
+    protected String[] whitelist = new String[]{"41","264","266","371"};
+    protected String[] blacklist = new String[]{"8","9","10","11","51"};
+    protected boolean gotVault = false;
+    protected boolean gotEconomy = false;
+    protected boolean useNetworkPerms = false;
+    protected vaultBridge vault;
+    protected double createFee;
+    protected double useFee;
+    protected boolean useEnderChests;
 
     @Override
     public void onDisable () {
@@ -56,7 +53,6 @@ public class ChestBank extends JavaPlugin {
     @Override
     public void onEnable () {
         PluginManager pm = getServer().getPluginManager();
-        logger = getLogger();
         config = getConfig();
         limits[0] = 10;
         limits[0] = config.getInt("normal_limit");
@@ -111,6 +107,8 @@ public class ChestBank extends JavaPlugin {
             config.set("creation_fee", createFee);
             config.set("transaction_fee", useFee);
         }
+        useEnderChests = config.getBoolean("use_ender_chests", false);
+        config.set("use_ender_chests", useEnderChests);
         saveConfig();
         pm.registerEvents(playerListener, this);
         banksConfig = getChestBanks();
@@ -182,12 +180,17 @@ public class ChestBank extends JavaPlugin {
                     return true;
                 }
                 Block block = player.getTargetBlock(null, 4);
-                if (block.getTypeId() != 54) {
+                if (block.getType() != Material.CHEST && block.getType() != Material.ENDER_CHEST) {
                     player.sendMessage(ChatColor.RED + "You're not looking at a chest!");
                     return true;
                 }
                 if (isBankBlock(block)) {
                     player.sendMessage(ChatColor.RED + "That is already a ChestBank!");
+                    return true;
+                }
+                Block doubleChest = getDoubleChest(block);
+                if (useEnderChests && doubleChest != null) {
+                    player.sendMessage(ChatColor.RED + "You cannot turn a double chest into and Ender ChestBank!");
                     return true;
                 }
                 if (gotVault && gotEconomy && createFee != 0) {
@@ -227,12 +230,15 @@ public class ChestBank extends JavaPlugin {
                         }
                     }
                     locsList += block.getWorld().getName() + ":" + block.getX() + ":" + block.getY() + ":" + block.getZ();
-                    Block doubleChest = getDoubleChest(block);
                     if (doubleChest != null) {
                         locsList += ":" + doubleChest.getX() + ":" + doubleChest.getY() + ":" + doubleChest.getZ();
                     }
                     banksConfig.set("networks." + args[1] + ".locations", locsList);
                     saveChestBanks();
+                    if (useEnderChests) {
+                        block.setType(Material.AIR);
+                        block.setType(Material.ENDER_CHEST);
+                    }
                     player.sendMessage(ChatColor.GOLD + "ChestBank created on " + ChatColor.WHITE + network + ChatColor.GOLD + " Network!");
                     if (gotVault && gotEconomy && createFee != 0 && !player.hasPermission("chestbank.free.create.networks")) {
                         vault.economy.withdrawPlayer(player.getName(), createFee);
@@ -247,12 +253,17 @@ public class ChestBank extends JavaPlugin {
                 else {
                     bankList += ";" + block.getWorld().getName() + ":" + block.getX() + ":" + block.getY() + ":" + block.getZ();
                 }
-                Block doubleChest = getDoubleChest(block);
                 if (doubleChest != null) {
                     bankList += ":" + doubleChest.getX() + ":" + doubleChest.getY() + ":" + doubleChest.getZ();
                 }
                 banksConfig.set("banks", bankList);
                 saveChestBanks();
+                if (useEnderChests) {
+                    byte data = block.getData();
+                    block.setType(Material.AIR);
+                    block.setType(Material.ENDER_CHEST);
+                    block.setData(data);
+                }
                 player.sendMessage(ChatColor.GOLD + "ChestBank created!");
                 if (gotVault && gotEconomy && createFee != 0 && !player.hasPermission("chestbank.free.create")) {
                     vault.economy.withdrawPlayer(player.getName(), createFee);
@@ -422,17 +433,16 @@ public class ChestBank extends JavaPlugin {
                 return true;
             }
             OfflinePlayer target = getServer().getOfflinePlayer(args[1]);
-            String account = "";
+            String account;
             if (isNetworkBank(block)) {
                 account = getNetwork(block) + ">>" + target.getName();
             } else {
                 account = target.getName();
             }
-            if (chestAccounts.containsKey(account)) {
-                DoubleChestInventory lc = chestAccounts.get(account);
+            if (chestAccounts.get(account) != null) {
+                Inventory lc = chestAccounts.get(account);
                 player.openInventory(lc);
-            }
-            else {
+            } else {
                 player.sendMessage(ChatColor.RED + target.getName() + " does not have a ChestBank account here!");
             }
             return true;
@@ -541,38 +551,43 @@ public class ChestBank extends JavaPlugin {
     }
 	
     public Block getDoubleChest(Block block) {
+        if (block.getType() == Material.ENDER_CHEST) {
+            return null;
+        } else {
         int blockX = block.getX();
         int blockY = block.getY();
         int blockZ = block.getZ();
-        if (block.getWorld().getBlockAt(blockX + 1, blockY, blockZ).getTypeId() == 54) {
+        if (block.getWorld().getBlockAt(blockX + 1, blockY, blockZ).getType().equals(Material.CHEST)) {
             return block.getWorld().getBlockAt(blockX + 1, blockY, blockZ);
         }
-        if (block.getWorld().getBlockAt(blockX - 1, blockY, blockZ).getTypeId() == 54) {
+        if (block.getWorld().getBlockAt(blockX - 1, blockY, blockZ).getType().equals(Material.CHEST)) {
             return block.getWorld().getBlockAt(blockX - 1, blockY, blockZ);
         }
-        if (block.getWorld().getBlockAt(blockX , blockY, blockZ + 1).getTypeId() == 54) {
+        if (block.getWorld().getBlockAt(blockX , blockY, blockZ + 1).getType().equals(Material.CHEST)) {
             return block.getWorld().getBlockAt(blockX, blockY, blockZ + 1);
         }
-        if (block.getWorld().getBlockAt(blockX , blockY, blockZ - 1).getTypeId() == 54) {
+        if (block.getWorld().getBlockAt(blockX , blockY, blockZ - 1).getType().equals(Material.CHEST)) {
             return block.getWorld().getBlockAt(blockX, blockY, blockZ - 1);
         }
         return null;
+        }
     }
 	
-    public HashMap<String, DoubleChestInventory> getAccounts() {
-        HashMap<String, DoubleChestInventory> chests = new HashMap<String, DoubleChestInventory>();
+    public HashMap<String, Inventory> getAccounts() {
+        HashMap<String, Inventory> chests = new HashMap<String, Inventory>();
         ConfigurationSection chestSection = banksConfig.getConfigurationSection("accounts");
         if (chestSection != null) {
             Set<String> fileChests = chestSection.getKeys(false);
             if (fileChests != null) {
                 for (String playerName : fileChests) {
-                    String account = "";
+                    String account;
                     if (playerName.contains(">>")) {
                         account = playerName.split(">>")[1];
                     } else {
                         account = playerName;
                     }
-                    DoubleChestInventory returnInv = new CraftInventoryDoubleChest(new InventoryLargeChest(account, new TileEntityChest(), new TileEntityChest()));
+                    Player player = getServer().getOfflinePlayer(account).getPlayer();
+                    Inventory returnInv = Bukkit.createInventory(player, 54, account);
                     String[] chestInv = banksConfig.getString("accounts." + playerName).split(";");
                     int i = 0;
                     for (String items : chestInv) {
@@ -602,10 +617,10 @@ public class ChestBank extends JavaPlugin {
         return chests;
     }
 	
-    public void setAccounts(HashMap<String, DoubleChestInventory> chests) {
+    public void setAccounts(HashMap<String, Inventory> chests) {
         Set<String> chestKeys = chests.keySet();
         for (String key : chestKeys) {
-            DoubleChestInventory chest = chests.get(key);
+            Inventory chest = chests.get(key);
             String chestInv = "";
             for (ItemStack item : chest.getContents()) {
                 chestInv += ";";
@@ -668,7 +683,8 @@ public class ChestBank extends JavaPlugin {
         try {
             banksConfig.save(bankFile);
         } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Could not save " + bankFile, ex );
+            getLogger().severe("Could not save " + bankFile);
+            ex.printStackTrace();
         }
     }
 }
