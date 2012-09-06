@@ -124,7 +124,72 @@ public class ChestBank extends JavaPlugin {
                 sender.sendMessage("Sorry! The console can't use this command!");
                 return true;
         }
+        
         Player player = (Player) sender;
+        
+        /* CHEST */
+        
+        if (commandLabel.equalsIgnoreCase("chest")) {
+            if (args.length == 0) {
+                boolean allowed = true;
+                if (gotVault && gotEconomy && useFee != 0) {
+                    if (vault.economy.getBalance(player.getName()) < useFee && !player.hasPermission("chestbank.free.use")) {
+                        player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + vault.economy.format(useFee) + ChatColor.RED + "!");
+                        allowed = false;
+                    }
+                }
+                if (allowed) {
+                    Inventory inv = chestAccounts.get(player.getName());
+                    if (inv != null && inv.getContents().length != 0) {
+                        openInvs.put(player.getName(), "");
+                        player.openInventory(inv);
+                    } else {
+                        inv = Bukkit.createInventory(player, 54, player.getName());
+                        chestAccounts.put(player.getName(), inv);
+                        setAccounts(chestAccounts);
+                        openInvs.put(player.getName(), "");
+                        player.openInventory(inv);
+                    }
+                }
+            } else {
+                boolean allowed = true;
+                String network = args[0];
+                if (!isNetwork(network)) {
+                    player.sendMessage(ChatColor.RED + "There is no ChestBank network called " + ChatColor.WHITE + args[0]);
+                    return false;
+                }
+                if (useNetworkPerms == true && (!player.hasPermission("chestbank.use.networks." + network.toLowerCase()) && !player.hasPermission("chestbank.use.networks.*")))
+                {
+                    player.sendMessage(ChatColor.RED + "You are not allowed to use ChestBanks on the " + ChatColor.WHITE + network + ChatColor.RED + " network!");
+                    allowed = false;
+                } else if (!useNetworkPerms && !player.hasPermission("chestbank.use.networks")) {
+                    player.sendMessage(ChatColor.RED + "You are not allowed to use ChestBanks on named networks!");
+                    allowed = false;
+                } else if (gotVault && gotEconomy && useFee != 0 && !player.hasPermission("chestbank.free.use.networks")) {
+                    if (vault.economy.getBalance(player.getName()) < useFee) {
+                        player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + vault.economy.format(useFee) + ChatColor.RED + "!");
+                        allowed = false;
+                    }
+                }
+                if (allowed) {
+                    Inventory inv = chestAccounts.get(network + ">>" + player.getName());
+                    if (inv != null && inv.getContents().length != 0) {
+                        openInvs.put(player.getName(), network);
+                        player.openInventory(inv);
+                    } else {
+                        inv = Bukkit.createInventory(player, 54, player.getName());
+                        chestAccounts.put(network + ">>" + player.getName(), inv);
+                        setAccounts(chestAccounts);
+                        openInvs.put(player.getName(), network);
+                        player.openInventory(inv);
+                    }
+                }
+            }
+            return true;
+        }
+        
+        /* CHESTBANK */
+        
         if (args.length == 0) {
             // Command list requested
             PluginDescriptionFile pdfFile = this.getDescription();
@@ -152,7 +217,7 @@ public class ChestBank extends JavaPlugin {
                 found = true;
             }
             if (player.hasPermission("chestbank.see")) {
-                player.sendMessage(ChatColor.GOLD + "  /chestbank see [player] " + ChatColor.GRAY + ": View player's ChestBank account.");
+                player.sendMessage(ChatColor.GOLD + "  /chestbank see [player] {network}" + ChatColor.GRAY + ": View player's ChestBank account.");
                 found = true;
             }
             if (!found) {
@@ -236,8 +301,10 @@ public class ChestBank extends JavaPlugin {
                     banksConfig.set("networks." + args[1] + ".locations", locsList);
                     saveChestBanks();
                     if (useEnderChests) {
+                        byte data = block.getData();
                         block.setType(Material.AIR);
                         block.setType(Material.ENDER_CHEST);
+                        block.setData(data);
                     }
                     player.sendMessage(ChatColor.GOLD + "ChestBank created on " + ChatColor.WHITE + network + ChatColor.GOLD + " Network!");
                     if (gotVault && gotEconomy && createFee != 0 && !player.hasPermission("chestbank.free.create.networks")) {
@@ -415,7 +482,7 @@ public class ChestBank extends JavaPlugin {
                 return true;
             }
         }
-        else if (args.length == 2) {
+        else if (args.length >= 2) {
             if (!args[0].equalsIgnoreCase("see")) {
                 return false;
             }
@@ -423,27 +490,30 @@ public class ChestBank extends JavaPlugin {
                 player.sendMessage(ChatColor.RED + "You do not have permission to access other players' accounts!");
                 return true;
             }
-            Block block = player.getTargetBlock(null, 4);
-            if (isNetworkBank(block) && !player.hasPermission("chestbank.see.networks")) {
-                player.sendMessage(ChatColor.RED + "You do not have permission to access other players' " + ChatColor.WHITE + getNetwork(block) + ChatColor.GOLD + " accounts!");
-                return true;
-            }
-            if (!isBankBlock(block)) {
-                player.sendMessage(ChatColor.RED + "You're not looking at a ChestBank!");
-                return true;
-            }
             OfflinePlayer target = getServer().getOfflinePlayer(args[1]);
-            String account;
-            if (isNetworkBank(block)) {
-                account = getNetwork(block) + ">>" + target.getName();
-            } else {
+            String account = "";
+            String accountFail = "";
+            if (args.length == 3) {
+                String network = args[2];
+                if (!player.hasPermission("chestbank.see.networks")) {
+                    player.sendMessage(ChatColor.RED + "You do not have permission to access other players' " + ChatColor.WHITE + args[2] + ChatColor.GOLD + " accounts!");
+                    return true;
+                }
+                if (!isNetwork(network)) {
+                    player.sendMessage(ChatColor.RED + "There is no ChestBank network called " + ChatColor.WHITE + args[2]);
+                    return false;
+                }
+                account = args[2] + ">>" + target.getName();
+                accountFail = " in the " + ChatColor.WHITE + args[2] + ChatColor.RED + " network";
+            }
+            if ("".equals(account)) {
                 account = target.getName();
             }
             if (chestAccounts.get(account) != null) {
                 Inventory lc = chestAccounts.get(account);
                 player.openInventory(lc);
             } else {
-                player.sendMessage(ChatColor.RED + target.getName() + " does not have a ChestBank account here!");
+                player.sendMessage(ChatColor.RED + target.getName() + " does not have a ChestBank account"+accountFail+"!");
             }
             return true;
         }
@@ -478,6 +548,19 @@ public class ChestBank extends JavaPlugin {
         }
         if (isNetworkBank(block)) {
             return true;
+        }
+        return false;
+    }
+    
+    public boolean isNetwork(String networkName) {
+        String networks = banksConfig.getString("networks.names", "");
+        if (!"".equals(networks)) {
+            String[] netSplit = networks.split(":");
+            for (String network : netSplit) {
+                if (network.equalsIgnoreCase(networkName)) {
+                    return true;
+                }
+            }
         }
         return false;
     }

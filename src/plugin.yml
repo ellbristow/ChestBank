@@ -1,6 +1,6 @@
 name: ChestBank
 main: me.ellbristow.ChestBank.ChestBank
-version: 1.7.0
+version: 1.8.0
 author: ellbristow
 dev-url: http://dev.bukkit.org/server-mods/chestbank
 softdepend: [Vault,My Worlds,Multiverse,WhooshingWell]
@@ -11,6 +11,10 @@ commands:
     description: ChestBank command list
     usage: "Please see /chestbank (or /cb) for ChestBank commands"
     aliases: cb
+  chest:
+    description: Open ChestBank
+    usage: "/chestbank {Network Name}"
+    permission: chestbank.commands.chest
 
 permissions:
   chestbank.*:
