@@ -28,6 +28,7 @@ permissions:
       chestbank.see.*: true
       chestbank.free.*: true
       chestbank.ignore.*: true
+      chestbank.chest: true
 
   chestbank.use.*:
     description: Can use any chestbank on any network
@@ -57,6 +58,9 @@ permissions:
     description: Can create a ChestBank on named networks
   chestbank.create.networks:
     description: Can create a ChestBank on all named networks (if using use_network_perms option)
+    
+  chestbank.chest:
+    description: Access to /chest command
 
   chestbank.info:
     description: Access to the /cb info command
