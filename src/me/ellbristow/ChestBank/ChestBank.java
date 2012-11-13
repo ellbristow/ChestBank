@@ -357,8 +357,6 @@ public class ChestBank extends JavaPlugin {
                     return true;
                 }
                 if (isNetworkBank(block)) {
-                    String networkNames = banksConfig.getString("networks.names");
-                    String[] networkNamesArray = networkNames.split(":");
                     String networkName = getNetwork(block);
                     String networkLocs = banksConfig.getString("networks." + networkName + ".locations", "");
                     String newNetworkLocs = "";
