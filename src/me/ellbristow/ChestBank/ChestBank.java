@@ -5,10 +5,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -19,6 +16,10 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
@@ -678,13 +679,44 @@ public class ChestBank extends JavaPlugin {
                         short i2 = Short.parseShort(item[2]);
                         if(i0 != 0) {
                             ItemStack stack = new ItemStack(i0, i1, i2);
-                            if (item.length == 4) {
-                                String[] enchArray = item[3].split(",");
-                                for (String ench : enchArray) {
-                                    String[] bits = ench.split("~");
-                                    int enchId = Integer.parseInt(bits[0]);
-                                    int enchLvl = Integer.parseInt(bits[1]);
-                                    stack.addUnsafeEnchantment(Enchantment.getById(enchId), enchLvl);
+                            if (item.length >= 4) {
+                                if (!item[3].equals("NONE")) {
+                                    String[] enchArray = item[3].split(",");
+                                    for (String ench : enchArray) {
+                                        String[] bits = ench.split("~");
+                                        int enchId = Integer.parseInt(bits[0]);
+                                        int enchLvl = Integer.parseInt(bits[1]);
+                                        stack.addUnsafeEnchantment(Enchantment.getById(enchId), enchLvl);
+                                    }
+                                }
+                                if (item.length >= 5) {
+                                    String[] metaSplit = item[4].split(":META:");
+                                    if (metaSplit[0].equals("BOOK")) {
+                                        BookMeta book = (BookMeta)stack.getItemMeta();
+                                        book.setTitle(metaSplit[1]);
+                                        book.setAuthor(metaSplit[2]);
+                                        String[] pages = metaSplit[3].split(":PAGE:");
+                                        for (int p = 0; p < pages.length; p++) {
+                                            book.addPage(pages[p]);
+                                        }
+                                        stack.setItemMeta(book);
+                                    } else if (metaSplit[0].equals("ARMOR")) {
+                                        LeatherArmorMeta armor = (LeatherArmorMeta)stack.getItemMeta();
+                                        armor.setColor(Color.fromRGB(Integer.parseInt(metaSplit[2]), Integer.parseInt(metaSplit[3]), Integer.parseInt(metaSplit[4])));
+                                        if (!metaSplit[1].equals("")) {
+                                            armor.setDisplayName(metaSplit[1]);
+                                        }
+                                        stack.setItemMeta(armor);
+                                    } else if (metaSplit[0].equals("MAP")) {
+                                        MapMeta map = (MapMeta)stack.getItemMeta();
+                                        if (!metaSplit[1].equals("")) {
+                                            map.setDisplayName(metaSplit[1]);
+                                        }
+                                        map.setScaling(Boolean.parseBoolean(metaSplit[2]));
+                                        stack.setItemMeta(map);
+                                    } else if (metaSplit[0].equals("ITEM")) {
+                                        stack.getItemMeta().setDisplayName(metaSplit[1]);
+                                    }
                                 }
                             }
                             returnInv.setItem(i, stack);
@@ -720,6 +752,42 @@ public class ChestBank extends JavaPlugin {
                             enchList += "," + ((Enchantment)keys[i]).getId() + "~" + levels[i];
                         }
                         chestInv += enchList.replaceFirst(",", "");
+                    }
+                    String meta = "";
+                    if (item.hasItemMeta()) {
+                        if (enchantments.isEmpty()) {
+                            chestInv += ":NONE:";
+                        }
+                        ItemMeta itemMeta = item.getItemMeta();
+                        if (itemMeta instanceof BookMeta) {
+                            BookMeta book = (BookMeta)itemMeta;
+                            meta = "BOOK:META:"+book.getTitle() + ":META:" + book.getAuthor()+ ":META:";
+                            String pages = "";
+                            for (String page : book.getPages()) {
+                                if (!pages.equals("")) {
+                                    pages += ":PAGE:";
+                                }
+                                pages += page;
+                            }
+                            meta += pages;
+                        } else if (itemMeta instanceof LeatherArmorMeta) {
+                            LeatherArmorMeta armor = (LeatherArmorMeta)itemMeta;
+                            meta = "ARMOR:META:";
+                            if (armor.hasDisplayName()) {
+                                meta += armor.getDisplayName();
+                            }
+                            meta += ":META:" + armor.getColor().getRed() + ":META:" + armor.getColor().getGreen()  + ":META:" + armor.getColor().getBlue();
+                        } else if (itemMeta instanceof MapMeta) {
+                            MapMeta map = (MapMeta)itemMeta;
+                            meta = "MAP:META:";
+                            if (map.hasDisplayName()) {
+                                meta += map.getDisplayName();
+                            }
+                            meta += ":META:" + map.isScaling();
+                        } else if (itemMeta.hasDisplayName()) {
+                            meta = "ITEM:META:" + itemMeta.getDisplayName();
+                        }
+                        chestInv += ":" + meta;
                     }
                 }
                 else {
