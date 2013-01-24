@@ -3,13 +3,13 @@ package me.ellbristow.ChestBank;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
@@ -17,28 +17,28 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
-import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-        
+
 public class ChestBank extends JavaPlugin {
-	
+
     protected static ChestBank plugin;
     protected FileConfiguration banksConfig;
     protected FileConfiguration config;
     private File bankFile = null;
     protected HashMap<String, Inventory> chestAccounts;
-    protected int[] limits = {10,25,35};
+    protected int[] limits = {10, 25, 35};
     protected final ChestBankListener playerListener = new ChestBankListener(this);
     protected HashMap<String, String> openInvs = new HashMap<String, String>();
     protected boolean useWhitelist = false;
     protected boolean useBlacklist = false;
-    protected String[] whitelist = new String[]{"41","264","266","371"};
-    protected String[] blacklist = new String[]{"8","9","10","11","51"};
+    protected String[] whitelist = new String[]{"41", "264", "266", "371"};
+    protected String[] blacklist = new String[]{"8", "9", "10", "11", "51"};
     protected boolean gotVault = false;
     protected boolean gotEconomy = false;
     protected boolean useNetworkPerms = false;
@@ -48,11 +48,11 @@ public class ChestBank extends JavaPlugin {
     protected boolean useEnderChests;
 
     @Override
-    public void onDisable () {
+    public void onDisable() {
     }
 
     @Override
-    public void onEnable () {
+    public void onEnable() {
         PluginManager pm = getServer().getPluginManager();
         config = getConfig();
         limits[0] = 10;
@@ -75,7 +75,7 @@ public class ChestBank extends JavaPlugin {
             whitelist = whitelistString.split(",");
             whitelistString = "";
             if (whitelist.length != 0) {
-                for(String item : whitelist) {
+                for (String item : whitelist) {
                     if (!"".equals(whitelistString)) {
                         whitelistString += ",";
                     }
@@ -89,7 +89,7 @@ public class ChestBank extends JavaPlugin {
             blacklist = blacklistString.split(",");
             blacklistString = "";
             if (blacklist.length != 0) {
-                for(String item : blacklist) {
+                for (String item : blacklist) {
                     if (!"".equals(blacklistString)) {
                         blacklistString += ",";
                     }
@@ -118,18 +118,20 @@ public class ChestBank extends JavaPlugin {
             registerNetworkPerms();
         }
     }
-	
+
     @Override
-    public boolean onCommand (CommandSender sender, Command cmd, String commandLabel, String[] args) {
+    public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args) {
         if (!(sender instanceof Player)) {
-                sender.sendMessage("Sorry! The console can't use this command!");
-                return true;
+            sender.sendMessage("Sorry! The console can't use this command!");
+            return true;
         }
-        
+
         Player player = (Player) sender;
-        
-        /* CHEST */
-        
+
+        /*
+         * CHEST
+         */
+
         if (commandLabel.equalsIgnoreCase("chest")) {
             if (args.length == 0) {
                 boolean allowed = true;
@@ -159,8 +161,7 @@ public class ChestBank extends JavaPlugin {
                     player.sendMessage(ChatColor.RED + "There is no ChestBank network called " + ChatColor.WHITE + args[0]);
                     return false;
                 }
-                if (useNetworkPerms == true && (!player.hasPermission("chestbank.use.networks." + network.toLowerCase()) && !player.hasPermission("chestbank.use.networks.*")))
-                {
+                if (useNetworkPerms == true && (!player.hasPermission("chestbank.use.networks." + network.toLowerCase()) && !player.hasPermission("chestbank.use.networks.*"))) {
                     player.sendMessage(ChatColor.RED + "You are not allowed to use ChestBanks on the " + ChatColor.WHITE + network + ChatColor.RED + " network!");
                     allowed = false;
                 } else if (!useNetworkPerms && !player.hasPermission("chestbank.use.networks")) {
@@ -188,9 +189,11 @@ public class ChestBank extends JavaPlugin {
             }
             return true;
         }
-        
-        /* CHESTBANK */
-        
+
+        /*
+         * CHESTBANK
+         */
+
         if (args.length == 0) {
             // Command list requested
             PluginDescriptionFile pdfFile = this.getDescription();
@@ -225,13 +228,11 @@ public class ChestBank extends JavaPlugin {
                 player.sendMessage(ChatColor.GOLD + "There are no ChestBank commands you can use!");
             }
             return true;
-        }
-        else if (args.length == 1 || (args.length == 2 && (args[0].equalsIgnoreCase("create") || args[0].equalsIgnoreCase("remove")))) {
+        } else if (args.length == 1 || (args.length == 2 && (args[0].equalsIgnoreCase("create") || args[0].equalsIgnoreCase("remove")))) {
             if (args[0].equalsIgnoreCase("see")) {
                 player.sendMessage(ChatColor.RED + "Please specify a player!");
                 return false;
-            }
-            // Create, Remove, List, Info
+            } // Create, Remove, List, Info
             else if (args[0].equalsIgnoreCase("create")) {
                 if (!player.hasPermission("chestbank.create")) {
                     player.sendMessage(ChatColor.RED + "You do not have permission to create a ChestBank!");
@@ -317,8 +318,7 @@ public class ChestBank extends JavaPlugin {
                 String bankList = banksConfig.getString("banks", "");
                 if (bankList.equals("")) {
                     bankList += block.getWorld().getName() + ":" + block.getX() + ":" + block.getY() + ":" + block.getZ();
-                }
-                else {
+                } else {
                     bankList += ";" + block.getWorld().getName() + ":" + block.getX() + ":" + block.getY() + ":" + block.getZ();
                 }
                 if (doubleChest != null) {
@@ -338,8 +338,7 @@ public class ChestBank extends JavaPlugin {
                     player.sendMessage(ChatColor.GOLD + "You were charged " + ChatColor.WHITE + vault.economy.format(createFee) + ChatColor.GOLD + " for ChestBank creation!");
                 }
                 return true;
-            }
-            else if (args[0].equalsIgnoreCase("remove")) {
+            } else if (args[0].equalsIgnoreCase("remove")) {
                 if (!player.hasPermission("chestbank.remove")) {
                     player.sendMessage(ChatColor.RED + "You do not have permission to remove a ChestBank!");
                     return true;
@@ -382,7 +381,7 @@ public class ChestBank extends JavaPlugin {
                             int bankA = Integer.parseInt(loc[4]);
                             int bankB = Integer.parseInt(loc[5]);
                             int bankC = Integer.parseInt(loc[6]);
-                            if (!bankWorld.equals(block.getWorld().getName()) || (!(bankX == block.getX() && bankY == block.getY() && bankZ == block.getZ()) && !(bankA == block.getX() && bankB == block.getY() && bankC == block.getZ()) )) {
+                            if (!bankWorld.equals(block.getWorld().getName()) || (!(bankX == block.getX() && bankY == block.getY() && bankZ == block.getZ()) && !(bankA == block.getX() && bankB == block.getY() && bankC == block.getZ()))) {
                                 if (!newNetworkLocs.equals("")) {
                                     newNetworkLocs += ";";
                                 }
@@ -399,8 +398,7 @@ public class ChestBank extends JavaPlugin {
                 String[] bankSplit = bankList.split(";");
                 if (bankSplit.length == 0 || bankSplit.length == 1) {
                     banksConfig.set("banks", "");
-                }
-                else {
+                } else {
                     String newBankList = "";
                     for (String chestBank : bankSplit) {
                         String[] bankLoc = chestBank.split(":");
@@ -415,8 +413,7 @@ public class ChestBank extends JavaPlugin {
                                 }
                                 newBankList += blockWorld + ":" + blockX + ":" + blockY + ":" + blockZ;
                             }
-                        }
-                        else {
+                        } else {
                             String blockWorld = bankLoc[0];
                             int blockX = Integer.parseInt(bankLoc[1]);
                             int blockY = Integer.parseInt(bankLoc[2]);
@@ -437,8 +434,7 @@ public class ChestBank extends JavaPlugin {
                 saveChestBanks();
                 player.sendMessage(ChatColor.GOLD + "ChestBank removed!");
                 return true;
-            }
-            else if (args[0].equalsIgnoreCase("info")) {
+            } else if (args[0].equalsIgnoreCase("info")) {
                 if (!player.hasPermission("chestbank.info")) {
                     player.sendMessage(ChatColor.RED + "You do not have permission to get ChestBank info!");
                     return true;
@@ -457,8 +453,7 @@ public class ChestBank extends JavaPlugin {
                         return true;
                     }
                 }
-            }
-            else if (args[0].equalsIgnoreCase("list")) {
+            } else if (args[0].equalsIgnoreCase("list")) {
                 String bankLocs = banksConfig.getString("banks", "");
                 player.sendMessage(ChatColor.GOLD + "ChestBank Networks:");
                 int banks = 0;
@@ -480,8 +475,7 @@ public class ChestBank extends JavaPlugin {
                 }
                 return true;
             }
-        }
-        else if (args.length >= 2) {
+        } else if (args.length >= 2) {
             if (!args[0].equalsIgnoreCase("see")) {
                 return false;
             }
@@ -512,14 +506,14 @@ public class ChestBank extends JavaPlugin {
                 Inventory lc = chestAccounts.get(account);
                 player.openInventory(lc);
             } else {
-                player.sendMessage(ChatColor.RED + target.getName() + " does not have a ChestBank account"+accountFail+"!");
+                player.sendMessage(ChatColor.RED + target.getName() + " does not have a ChestBank account" + accountFail + "!");
             }
             return true;
         }
         return false;
     }
-	
-    public boolean isBankBlock (Block block) {
+
+    public boolean isBankBlock(Block block) {
         // Check if the block is a ChestBank
         String bankList = banksConfig.getString("banks", "");
         if (!bankList.equals("")) {
@@ -550,7 +544,7 @@ public class ChestBank extends JavaPlugin {
         }
         return false;
     }
-    
+
     public boolean isNetwork(String networkName) {
         String networks = banksConfig.getString("networks.names", "");
         if (!"".equals(networks)) {
@@ -563,7 +557,7 @@ public class ChestBank extends JavaPlugin {
         }
         return false;
     }
-        
+
     public boolean isNetworkBank(Block block) {
         ConfigurationSection bankList = banksConfig.getConfigurationSection("networks");
         if (bankList != null) {
@@ -580,14 +574,14 @@ public class ChestBank extends JavaPlugin {
                             int bankX = Integer.parseInt(bankCoords[1]);
                             int bankY = Integer.parseInt(bankCoords[2]);
                             int bankZ = Integer.parseInt(bankCoords[3]);
-                            if (block.getWorld().getName().equals(bankWorld) && block.getX()== bankX && block.getY() == bankY && block.getZ() == bankZ) {
+                            if (block.getWorld().getName().equals(bankWorld) && block.getX() == bankX && block.getY() == bankY && block.getZ() == bankZ) {
                                 return true;
                             }
                             if (bankCoords.length == 7) {
                                 bankX = Integer.parseInt(bankCoords[4]);
                                 bankY = Integer.parseInt(bankCoords[5]);
                                 bankZ = Integer.parseInt(bankCoords[6]);
-                                if (block.getWorld().getName().equals(bankWorld) && block.getX()== bankX && block.getY() == bankY && block.getZ() == bankZ) {
+                                if (block.getWorld().getName().equals(bankWorld) && block.getX() == bankX && block.getY() == bankY && block.getZ() == bankZ) {
                                     return true;
                                 }
                             }
@@ -598,7 +592,7 @@ public class ChestBank extends JavaPlugin {
         }
         return false;
     }
-        
+
     public String getNetwork(Block block) {
         String network = "";
         String networkNames = banksConfig.getString("networks.names");
@@ -631,31 +625,45 @@ public class ChestBank extends JavaPlugin {
         }
         return network;
     }
-	
+
     public Block getDoubleChest(Block block) {
         if (block.getType() == Material.ENDER_CHEST) {
             return null;
         } else {
-        int blockX = block.getX();
-        int blockY = block.getY();
-        int blockZ = block.getZ();
-        if (block.getWorld().getBlockAt(blockX + 1, blockY, blockZ).getType().equals(Material.CHEST)) {
-            return block.getWorld().getBlockAt(blockX + 1, blockY, blockZ);
-        }
-        if (block.getWorld().getBlockAt(blockX - 1, blockY, blockZ).getType().equals(Material.CHEST)) {
-            return block.getWorld().getBlockAt(blockX - 1, blockY, blockZ);
-        }
-        if (block.getWorld().getBlockAt(blockX , blockY, blockZ + 1).getType().equals(Material.CHEST)) {
-            return block.getWorld().getBlockAt(blockX, blockY, blockZ + 1);
-        }
-        if (block.getWorld().getBlockAt(blockX , blockY, blockZ - 1).getType().equals(Material.CHEST)) {
-            return block.getWorld().getBlockAt(blockX, blockY, blockZ - 1);
-        }
-        return null;
+            int blockX = block.getX();
+            int blockY = block.getY();
+            int blockZ = block.getZ();
+            if (block.getWorld().getBlockAt(blockX + 1, blockY, blockZ).getType().equals(Material.CHEST)) {
+                return block.getWorld().getBlockAt(blockX + 1, blockY, blockZ);
+            }
+            if (block.getWorld().getBlockAt(blockX - 1, blockY, blockZ).getType().equals(Material.CHEST)) {
+                return block.getWorld().getBlockAt(blockX - 1, blockY, blockZ);
+            }
+            if (block.getWorld().getBlockAt(blockX, blockY, blockZ + 1).getType().equals(Material.CHEST)) {
+                return block.getWorld().getBlockAt(blockX, blockY, blockZ + 1);
+            }
+            if (block.getWorld().getBlockAt(blockX, blockY, blockZ - 1).getType().equals(Material.CHEST)) {
+                return block.getWorld().getBlockAt(blockX, blockY, blockZ - 1);
+            }
+            return null;
         }
     }
-	
+
     public HashMap<String, Inventory> getAccounts() {
+        String version = banksConfig.getString("version");
+        if (version == null) {
+            HashMap<String, Inventory> oldAccounts = getOldAccounts();
+            if (!oldAccounts.isEmpty()) {
+                getLogger().info("ChestBank account data updated to latest version");
+            }
+            setAccounts(oldAccounts);
+            return oldAccounts;
+        } else {
+            return getNewAccounts();
+        }
+    }
+
+    public HashMap<String, Inventory> getNewAccounts() {
         HashMap<String, Inventory> chests = new HashMap<String, Inventory>();
         ConfigurationSection chestSection = banksConfig.getConfigurationSection("accounts");
         if (chestSection != null) {
@@ -670,14 +678,45 @@ public class ChestBank extends JavaPlugin {
                     }
                     Player player = getServer().getOfflinePlayer(account).getPlayer();
                     Inventory returnInv = Bukkit.createInventory(player, 54, account);
+                    returnInv.setMaxStackSize(127);
+                    ConfigurationSection chestInv = banksConfig.getConfigurationSection("accounts." + playerName);
+                    try {
+                        returnInv.setContents(ItemSerialization.loadInventory(chestInv));
+                    } catch (InvalidConfigurationException ex) {
+                        getLogger().severe("Error fetching inventory data!");
+                        ex.printStackTrace();
+                    }
+                    chests.put(playerName, returnInv);
+                }
+            }
+        }
+        return chests;
+    }
+
+    public HashMap<String, Inventory> getOldAccounts() {
+        HashMap<String, Inventory> chests = new HashMap<String, Inventory>();
+        ConfigurationSection chestSection = banksConfig.getConfigurationSection("accounts");
+        if (chestSection != null) {
+            Set<String> fileChests = chestSection.getKeys(false);
+            if (fileChests != null) {
+                for (String playerName : fileChests) {
+                    String account;
+                    if (playerName.contains(">>")) {
+                        account = playerName.split(">>")[1];
+                    } else {
+                        account = playerName;
+                    }
+                    Player player = getServer().getOfflinePlayer(account).getPlayer();
+                    Inventory returnInv = Bukkit.createInventory(player, 54, account);
+                    returnInv.setMaxStackSize(127);
                     String[] chestInv = banksConfig.getString("accounts." + playerName).split(";");
                     int i = 0;
                     for (String items : chestInv) {
-                        String[] item = items.split(":");
+                        String[] item = items.split(":", 5);
                         int i0 = Integer.parseInt(item[0]);
                         int i1 = Integer.parseInt(item[1]);
                         short i2 = Short.parseShort(item[2]);
-                        if(i0 != 0) {
+                        if (i0 != 0) {
                             ItemStack stack = new ItemStack(i0, i1, i2);
                             if (item.length >= 4) {
                                 if (!item[3].equals("NONE")) {
@@ -692,7 +731,7 @@ public class ChestBank extends JavaPlugin {
                                 if (item.length >= 5) {
                                     String[] metaSplit = item[4].split(":META:");
                                     if (metaSplit[0].equals("BOOK")) {
-                                        BookMeta book = (BookMeta)stack.getItemMeta();
+                                        BookMeta book = (BookMeta) stack.getItemMeta();
                                         book.setTitle(metaSplit[1]);
                                         book.setAuthor(metaSplit[2]);
                                         String[] pages = metaSplit[3].split(":PAGE:");
@@ -701,20 +740,27 @@ public class ChestBank extends JavaPlugin {
                                         }
                                         stack.setItemMeta(book);
                                     } else if (metaSplit[0].equals("ARMOR")) {
-                                        LeatherArmorMeta armor = (LeatherArmorMeta)stack.getItemMeta();
+                                        LeatherArmorMeta armor = (LeatherArmorMeta) stack.getItemMeta();
                                         armor.setColor(Color.fromRGB(Integer.parseInt(metaSplit[2]), Integer.parseInt(metaSplit[3]), Integer.parseInt(metaSplit[4])));
                                         if (!metaSplit[1].equals("")) {
                                             armor.setDisplayName(metaSplit[1]);
                                         }
                                         stack.setItemMeta(armor);
                                     } else if (metaSplit[0].equals("MAP")) {
-                                        MapMeta map = (MapMeta)stack.getItemMeta();
+                                        MapMeta map = (MapMeta) stack.getItemMeta();
                                         if (!metaSplit[1].equals("")) {
                                             map.setDisplayName(metaSplit[1]);
                                         }
                                         map.setScaling(Boolean.parseBoolean(metaSplit[2]));
                                         stack.setItemMeta(map);
-                                    } else if (metaSplit[0].equals("ITEM")) {
+                                    } else if (metaSplit[0].equals("EBOOK")) {
+                                        EnchantmentStorageMeta ench = (EnchantmentStorageMeta) stack.getItemMeta();
+                                        for (String e : metaSplit[1].split(":ENCH:")) {
+                                            String[] enchantment = e.split(":");
+                                            ench.addStoredEnchant(Enchantment.getById(Integer.parseInt(enchantment[0])), Integer.parseInt(enchantment[1]), false);
+                                        }
+                                        stack.setItemMeta(ench);
+                                    } else if (metaSplit[0].equals("ITEM") && metaSplit.length > 1) {
                                         stack.getItemMeta().setDisplayName(metaSplit[1]);
                                     }
                                 }
@@ -729,72 +775,18 @@ public class ChestBank extends JavaPlugin {
         }
         return chests;
     }
-	
+    
     public void setAccounts(HashMap<String, Inventory> chests) {
+        banksConfig.set("version", this.getDescription().getVersion());
         Set<String> chestKeys = chests.keySet();
         for (String key : chestKeys) {
             Inventory chest = chests.get(key);
-            String chestInv = "";
-            for (ItemStack item : chest.getContents()) {
-                chestInv += ";";
-                if (item != null) {
-                    int itemID = item.getTypeId();
-                    int itemCount = item.getAmount();
-                    int itemDamage = item.getDurability();
-                    chestInv += itemID + ":" + itemCount + ":" + itemDamage;
-                    Map<Enchantment, Integer> enchantments = item.getEnchantments();
-                    if (!enchantments.isEmpty()) {
-                        chestInv += ":";
-                        String enchList = "";
-                        Object[] keys = enchantments.keySet().toArray();
-                        Object[] levels = enchantments.values().toArray();
-                        for (int i = 0; i < enchantments.size(); i++) {
-                            enchList += "," + ((Enchantment)keys[i]).getId() + "~" + levels[i];
-                        }
-                        chestInv += enchList.replaceFirst(",", "");
-                    }
-                    String meta = "";
-                    if (item.hasItemMeta()) {
-                        if (enchantments.isEmpty()) {
-                            chestInv += ":NONE:";
-                        }
-                        ItemMeta itemMeta = item.getItemMeta();
-                        if (itemMeta instanceof BookMeta) {
-                            BookMeta book = (BookMeta)itemMeta;
-                            meta = "BOOK:META:"+book.getTitle() + ":META:" + book.getAuthor()+ ":META:";
-                            String pages = "";
-                            for (String page : book.getPages()) {
-                                if (!pages.equals("")) {
-                                    pages += ":PAGE:";
-                                }
-                                pages += page;
-                            }
-                            meta += pages;
-                        } else if (itemMeta instanceof LeatherArmorMeta) {
-                            LeatherArmorMeta armor = (LeatherArmorMeta)itemMeta;
-                            meta = "ARMOR:META:";
-                            if (armor.hasDisplayName()) {
-                                meta += armor.getDisplayName();
-                            }
-                            meta += ":META:" + armor.getColor().getRed() + ":META:" + armor.getColor().getGreen()  + ":META:" + armor.getColor().getBlue();
-                        } else if (itemMeta instanceof MapMeta) {
-                            MapMeta map = (MapMeta)itemMeta;
-                            meta = "MAP:META:";
-                            if (map.hasDisplayName()) {
-                                meta += map.getDisplayName();
-                            }
-                            meta += ":META:" + map.isScaling();
-                        } else if (itemMeta.hasDisplayName()) {
-                            meta = "ITEM:META:" + itemMeta.getDisplayName();
-                        }
-                        chestInv += ":" + meta;
-                    }
-                }
-                else {
-                    chestInv += "0:0:0";
-                }
+            ConfigurationSection section = banksConfig.getConfigurationSection("accounts." + key);
+            if (section == null) {
+                section = banksConfig.createSection("accounts."+key);
             }
-            banksConfig.set("accounts." + key, chestInv.replaceFirst(";", ""));
+            ItemSerialization.saveInventory(chest, section);
+            banksConfig.set("accounts." + key, section);
         }
         saveChestBanks();
     }
@@ -810,21 +802,21 @@ public class ChestBank extends JavaPlugin {
             }
         }
     }
-	
+
     public void loadChestBanks() {
         if (bankFile == null) {
-            bankFile = new File(getDataFolder(),"chests.yml");
+            bankFile = new File(getDataFolder(), "chests.yml");
         }
         banksConfig = YamlConfiguration.loadConfiguration(bankFile);
     }
-	
+
     public FileConfiguration getChestBanks() {
         if (banksConfig == null) {
             loadChestBanks();
         }
         return banksConfig;
     }
-	
+
     public void saveChestBanks() {
         if (banksConfig == null || bankFile == null) {
             return;
