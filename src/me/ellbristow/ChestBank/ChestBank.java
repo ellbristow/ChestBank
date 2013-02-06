@@ -3,6 +3,7 @@ package me.ellbristow.ChestBank;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -32,7 +33,7 @@ public class ChestBank extends JavaPlugin {
     protected FileConfiguration config;
     private File bankFile = null;
     protected HashMap<String, Inventory> chestAccounts;
-    protected int[] limits = {10, 25, 35};
+    protected HashMap<Integer, Integer> limits = new HashMap<Integer, Integer>();
     protected final ChestBankListener playerListener = new ChestBankListener(this);
     protected HashMap<String, String> openInvs = new HashMap<String, String>();
     protected boolean useWhitelist = false;
@@ -55,15 +56,32 @@ public class ChestBank extends JavaPlugin {
     public void onEnable() {
         PluginManager pm = getServer().getPluginManager();
         config = getConfig();
-        limits[0] = 10;
-        limits[0] = config.getInt("normal_limit");
-        config.set("normal_limit", limits[0]);
-        limits[1] = 25;
-        limits[1] = config.getInt("elevated_limit");
-        config.set("elevated_limit", limits[1]);
-        limits[2] = 25;
-        limits[2] = config.getInt("vip_limit");
-        config.set("vip_limit", limits[2]);
+        int thisLimit;
+        thisLimit = config.getInt("normal_limit", 10);
+        limits.put(0, thisLimit);
+        config.set("normal_limit", thisLimit);
+        thisLimit = config.getInt("elevated_limit", 25);
+        limits.put(1, thisLimit);
+        config.set("elevated_limit", thisLimit);
+        thisLimit = config.getInt("vip_limit", 35);
+        limits.put(2, thisLimit);
+        config.set("vip_limit", thisLimit);
+        String[] otherLimits = config.getString("limits", "10,25,35").split(",");
+        String newLimits = "";
+        int i = 2;
+        for (String limit : otherLimits) {
+            i++;
+            if (!newLimits.equals("")) {
+                newLimits += ",";
+            }
+            newLimits += limit;
+            try {
+                limits.put(i, Integer.parseInt(limit));
+            } catch (NumberFormatException ex) {
+                getLogger().severe("Limits config setting must contain numbers separated by commas!");
+            }
+        }
+        config.set("limits", newLimits);
         useWhitelist = config.getBoolean("use_whitelist", false);
         useBlacklist = config.getBoolean("use_blacklist", false);
         useNetworkPerms = config.getBoolean("use_network_perms", false);
@@ -117,6 +135,14 @@ public class ChestBank extends JavaPlugin {
         if (useNetworkPerms) {
             registerNetworkPerms();
         }
+        
+        try {
+            Metrics metrics = new Metrics(this);
+            metrics.start();
+        } catch (IOException e) {
+            // Failed to submit the stats :-(
+        }
+        
     }
 
     @Override
@@ -229,6 +255,21 @@ public class ChestBank extends JavaPlugin {
             }
             return true;
         } else if (args.length == 1 || (args.length == 2 && (args[0].equalsIgnoreCase("create") || args[0].equalsIgnoreCase("remove")))) {
+            
+            // List "transparent" blocks"
+            HashSet<Byte> trans = new HashSet<Byte>();
+            trans.add((byte)Material.AIR.getId());
+            trans.add((byte)Material.TORCH.getId());
+            trans.add((byte)Material.STONE_PLATE.getId());
+            trans.add((byte)Material.WOOD_PLATE.getId());
+            trans.add((byte)Material.REDSTONE_TORCH_ON.getId());
+            trans.add((byte)Material.REDSTONE_TORCH_OFF.getId());
+            trans.add((byte)Material.REDSTONE_WIRE.getId());
+            trans.add((byte)Material.TRIPWIRE.getId());
+            trans.add((byte)Material.VINE.getId());
+            trans.add((byte)Material.STONE_BUTTON.getId());
+            trans.add((byte)Material.WOOD_BUTTON.getId());
+            
             if (args[0].equalsIgnoreCase("see")) {
                 player.sendMessage(ChatColor.RED + "Please specify a player!");
                 return false;
@@ -246,9 +287,10 @@ public class ChestBank extends JavaPlugin {
                     player.sendMessage(ChatColor.RED + "You do not have permission to create a ChestBank on named   networks!");
                     return true;
                 }
-                Block block = player.getTargetBlock(null, 4);
+                Block block = player.getTargetBlock(trans, 4);
                 if (block.getType() != Material.CHEST && block.getType() != Material.ENDER_CHEST) {
                     player.sendMessage(ChatColor.RED + "You're not looking at a chest!");
+                    player.sendMessage(ChatColor.GRAY + "(Found: " + block.getType() + ")");
                     return true;
                 }
                 if (isBankBlock(block)) {
@@ -343,7 +385,7 @@ public class ChestBank extends JavaPlugin {
                     player.sendMessage(ChatColor.RED + "You do not have permission to remove a ChestBank!");
                     return true;
                 }
-                Block block = player.getTargetBlock(null, 4);
+                Block block = player.getTargetBlock(trans, 4);
                 if (isNetworkBank(block) && useNetworkPerms && (!player.hasPermission("chestbank.remove.networks." + getNetwork(block).toLowerCase()) && !player.hasPermission("chestbank.remove.networks.*"))) {
                     player.sendMessage(ChatColor.RED + "You do not have permission to remove a ChestBank on the");
                     player.sendMessage(ChatColor.WHITE + getNetwork(block) + ChatColor.RED + " network!");
@@ -354,6 +396,7 @@ public class ChestBank extends JavaPlugin {
                 }
                 if (!isBankBlock(block)) {
                     player.sendMessage(ChatColor.RED + "You're not looking at a ChestBank!");
+                    player.sendMessage(ChatColor.GRAY + "(Found: " + block.getType() + ")");
                     return true;
                 }
                 if (isNetworkBank(block)) {
@@ -439,9 +482,10 @@ public class ChestBank extends JavaPlugin {
                     player.sendMessage(ChatColor.RED + "You do not have permission to get ChestBank info!");
                     return true;
                 }
-                Block block = player.getTargetBlock(null, 4);
+                Block block = player.getTargetBlock(trans, 4);
                 if (!isBankBlock(block)) {
                     player.sendMessage(ChatColor.RED + "This block is not a ChestBank!");
+                    player.sendMessage(ChatColor.GRAY + "(Found: " + block.getType() + ")");
                     return true;
                 } else {
                     if (!isNetworkBank(block)) {

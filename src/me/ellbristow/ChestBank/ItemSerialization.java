@@ -2,7 +2,6 @@ package me.ellbristow.ChestBank;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -23,10 +22,7 @@ public class ItemSerialization {
         for (int i = 0; i < inventory.getSize(); i++) {
             ItemStack item = inventory.getItem(i);
             
-            // Don't store NULL entries
-            if (item != null) {
-                destination.set(Integer.toString(i), item);
-            }
+            destination.set(Integer.toString(i), item);
         }
     }
     

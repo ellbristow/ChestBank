@@ -1,6 +1,6 @@
 name: ChestBank
 main: me.ellbristow.ChestBank.ChestBank
-version: 1.10.0
+version: 1.10.1
 author: ellbristow
 dev-url: http://dev.bukkit.org/server-mods/chestbank
 softdepend: [Vault,My Worlds,Multiverse,WhooshingWell]
@@ -104,6 +104,9 @@ permissions:
   chestbank.limited.vip:
     description: Uses the "vip" limit
     default: false
+  chestbank.limited.override:
+    description: Overrides limits and forces a limit of 54
+    default: op
 
 # Whitelist/Blacklist Permissions
 

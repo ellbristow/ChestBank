@@ -43,3 +43,4 @@ use_blacklist: false
 blacklist: 8,9,10,11
 use_network_perms: false
 use_ender_chests: false
+limits: 10,25,35

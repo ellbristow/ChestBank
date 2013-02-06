@@ -120,6 +120,7 @@ public class ChestBankListener implements Listener {
             } else {
                 plugin.setAccounts(plugin.chestAccounts);
             }
+            plugin.saveChestBanks();
             player.sendMessage(ChatColor.GRAY + "ChestBank Inventory Saved!");
             if (plugin.gotVault && plugin.gotEconomy && plugin.useFee != 0) {
                 if ((network.equals("") && !player.hasPermission("chestbank.free.use")) || (!network.equals("") && !player.hasPermission("chestbank.free.use.networks"))) {
@@ -145,13 +146,24 @@ public class ChestBankListener implements Listener {
     private int getAllowedSlots(Player player) {
         int limit = 54;
         if (player.hasPermission("chestbank.limited.normal")) {
-            limit = plugin.limits[0];
+            limit = plugin.limits.get(0);
         }
         if (player.hasPermission("chestbank.limited.elevated")) {
-            limit = plugin.limits[1];
+            limit = plugin.limits.get(1);
         }
         if (player.hasPermission("chestbank.limited.vip")) {
-            limit = plugin.limits[2];
+            limit = plugin.limits.get(2);
+        }
+        if (plugin.limits.size() > 3) {
+            for (int i = 3; i < plugin.limits.size(); i++) {
+                int thisLimit = plugin.limits.get(i);
+                if (player.hasPermission("chestbank.limited."+thisLimit)) {
+                    limit = thisLimit;
+                }
+            }
+        }
+        if (player.hasPermission("chestbank.limited.override")) {
+            limit = 54;
         }
         if (limit > 54) {
             limit = 54;
@@ -373,7 +385,8 @@ public class ChestBankListener implements Listener {
                         player.sendMessage(ChatColor.RED + "You cannot deposit that item in a ChestBank!");
                         event.setCancelled(true);
                     } else {
-                        if (getUsedSlots(event.getInventory()) >= getAllowedSlots(player)) {
+                        int limit = getAllowedSlots(player);
+                        if (getUsedSlots(event.getInventory()) >= limit && limit != 54) {
                             player.sendMessage(ChatColor.RED + "Your ChestBank is Full!");
                             event.setCancelled(true);
                         }
