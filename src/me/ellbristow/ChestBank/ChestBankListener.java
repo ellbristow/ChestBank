@@ -19,6 +19,8 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -53,14 +55,21 @@ public class ChestBankListener implements Listener {
                         }
                     }
                     if (allowed) {
-                        Inventory inv = plugin.chestAccounts.get(network + ">>" + player.getName());
+                        Inventory inv;
+                        if (plugin.useSQL) {
+                            inv = plugin.getInventory(player, network);
+                        } else {
+                            inv = plugin.chestAccounts.get(network + ">>" + player.getName());
+                        }
                         if (inv != null && inv.getContents().length != 0) {
                             plugin.openInvs.put(player.getName(), network);
                             player.openInventory(inv);
                         } else {
                             inv = Bukkit.createInventory(player, 54, player.getName());
-                            plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
-                            plugin.setAccounts(plugin.chestAccounts);
+                            if (!plugin.useSQL) {
+                                plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
+                                plugin.setAccounts(plugin.chestAccounts);
+                            }
                             plugin.openInvs.put(player.getName(), network);
                             player.openInventory(inv);
                         }
@@ -80,14 +89,21 @@ public class ChestBankListener implements Listener {
                             }
                         }
                         if (allowed) {
-                            Inventory inv = plugin.chestAccounts.get(player.getName());
+                            Inventory inv;
+                            if (plugin.useSQL) {
+                                inv = plugin.getInventory(player, "");
+                            } else {
+                                inv = plugin.chestAccounts.get(player.getName());
+                            }
                             if (inv != null && inv.getContents().length != 0) {
                                 plugin.openInvs.put(player.getName(), "");
                                 player.openInventory(inv);
                             } else {
                                 inv = Bukkit.createInventory(player, 54, player.getName());
-                                plugin.chestAccounts.put(player.getName(), inv);
-                                plugin.setAccounts(plugin.chestAccounts);
+                                if (!plugin.useSQL) {
+                                    plugin.chestAccounts.put(player.getName(), inv);
+                                    plugin.setAccounts(plugin.chestAccounts);
+                                }
                                 plugin.openInvs.put(player.getName(), "");
                                 player.openInventory(inv);
                             }
@@ -111,16 +127,23 @@ public class ChestBankListener implements Listener {
                 player.sendMessage(ChatColor.RED + "Sorry! You may only use " + ChatColor.WHITE + allowed + ChatColor.RED + " ChestBank slot(s)!");
                 inv = trimExcess(player, inv);
                 player.sendMessage(ChatColor.RED + "Excess items have been returned to you!");
-                if (network.equals("")) {
-                    plugin.chestAccounts.put(player.getName(), inv);
+                if (plugin.useSQL) {
+                    plugin.sql.insert("INSERT OR REPLACE INTO ChestAccounts (playerName, network, inventory, lastActive) VALUES ('"+player.getName()+"','"+network+"','"+ItemSerialization.saveInventory(inv)+"', "+(new Date().getTime() / 1000)+")");
                 } else {
-                    plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
+                    if (network.equals("")) {
+                        plugin.chestAccounts.put(player.getName(), inv);
+                    } else {
+                        plugin.chestAccounts.put(network + ">>" + player.getName(), inv);
+                    }
+                    plugin.setAccounts(plugin.chestAccounts);
                 }
-                plugin.setAccounts(plugin.chestAccounts);
             } else {
-                plugin.setAccounts(plugin.chestAccounts);
+                if (plugin.useSQL) {
+                    plugin.sql.insert(" OR REPLACE", "ChestAccounts", new String[]{"playerName", "network", "inventory", "lastActive"}, new String[]{player.getName(), network, ItemSerialization.saveInventory(inv), new Date().getTime() / 1000 + ""});
+                } else {
+                    plugin.setAccounts(plugin.chestAccounts);
+                }
             }
-            plugin.saveChestBanks();
             player.sendMessage(ChatColor.GRAY + "ChestBank Inventory Saved!");
             if (plugin.gotVault && plugin.gotEconomy && plugin.useFee != 0) {
                 if ((network.equals("") && !player.hasPermission("chestbank.free.use")) || (!network.equals("") && !player.hasPermission("chestbank.free.use.networks"))) {
@@ -129,6 +152,7 @@ public class ChestBankListener implements Listener {
                     player.sendMessage(ChatColor.GOLD + "This transaction cost you " + ChatColor.WHITE + plugin.vault.economy.format(plugin.useFee) + ChatColor.GOLD + "!");
                 }
             }
+            player.updateInventory();
         }
     }
     
@@ -394,6 +418,24 @@ public class ChestBankListener implements Listener {
                 }
             }
         }
+    }
+    
+    @EventHandler (priority = EventPriority.NORMAL)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        
+        if (plugin.checkInactive && plugin.useSQL) {
+            plugin.sql.query("UPDATE ChestAccount SET lastActive = " + (new Date().getTime() / 1000) + " WHERE playerName = '"+event.getPlayer().getName()+"'");
+        }
+        
+    }
+    
+    @EventHandler (priority = EventPriority.NORMAL)
+    public void onPlayerKick(PlayerKickEvent event) {
+        
+        if (plugin.checkInactive && plugin.useSQL) {
+            plugin.sql.query("UPDATE ChestAccount SET lastActive = " + (new Date().getTime() / 1000) + " WHERE playerName = '"+event.getPlayer().getName()+"'");
+        }
+        
     }
     
 }

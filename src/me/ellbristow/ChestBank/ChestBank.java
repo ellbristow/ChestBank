@@ -2,9 +2,9 @@ package me.ellbristow.ChestBank;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
@@ -47,6 +47,11 @@ public class ChestBank extends JavaPlugin {
     protected double createFee;
     protected double useFee;
     protected boolean useEnderChests;
+    protected String dbType = "yml";
+    protected boolean useSQL = false;
+    protected SQLBridge sql;
+    protected int inactivePeriod = 0;
+    protected boolean checkInactive = false;
 
     @Override
     public void onDisable() {
@@ -54,6 +59,7 @@ public class ChestBank extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        plugin = this;
         PluginManager pm = getServer().getPluginManager();
         config = getConfig();
         int thisLimit;
@@ -128,10 +134,45 @@ public class ChestBank extends JavaPlugin {
         }
         useEnderChests = config.getBoolean("use_ender_chests", false);
         config.set("use_ender_chests", useEnderChests);
+        dbType = config.getString("database_method", "yml");
+        if (dbType.equalsIgnoreCase("sqlite")) {
+            useSQL = true;
+        }
+        config.set("database_method", dbType);
+        inactivePeriod = config.getInt("delete_if_inactive_after_days", 0);
+        if (inactivePeriod > 0) {
+            checkInactive = true;
+        } else {
+            inactivePeriod = 0;
+        }
+        config.set("delete_if_inactive_after_days", inactivePeriod);
         saveConfig();
         pm.registerEvents(playerListener, this);
+        
+        // Load SQLite if needed or YML if not
+        if (useSQL) {
+            sql = new SQLBridge();
+            
+            // Table doesn't exists
+            if (!sql.checkTable("ChestAccounts")) {
+                sql.createTable("ChestAccounts",
+                        new String[]{"playerName", "network", "inventory", "lastActive", "PRIMARY KEY (playerName, network)"},
+                        new String[]{"TEXT","TEXT", "TEXT", "NUMERIC DEFAULT 0", ""});
+                convertYMLtoSQL();
+            }
+            
+            if (!sql.checkColumn("ChestAccounts", "lastActive")) {
+                sql.query("ALTER TABLE ChestAccounts ADD COLUMN lastActive NUMERIC DEFAULT " + new Date().getTime() / 1000);
+            }
+            
+            if (checkInactive) {
+                sql.delete("DELETE FROM ChestAccounts WHERE lastActive != 0 AND lastActive < " + ((new Date().getTime() / 1000) - (inactivePeriod * 60 * 60 * 24)));
+            }
+            
+        } else {
+            chestAccounts = getAccounts();
+        }
         banksConfig = getChestBanks();
-        chestAccounts = getAccounts();
         if (useNetworkPerms) {
             registerNetworkPerms();
         }
@@ -160,28 +201,35 @@ public class ChestBank extends JavaPlugin {
 
         if (commandLabel.equalsIgnoreCase("chest")) {
             if (args.length == 0) {
-                boolean allowed = true;
+                
                 if (gotVault && gotEconomy && useFee != 0) {
                     if (vault.economy.getBalance(player.getName()) < useFee && !player.hasPermission("chestbank.free.use")) {
                         player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + vault.economy.format(useFee) + ChatColor.RED + "!");
-                        allowed = false;
+                        return false;
                     }
                 }
-                if (allowed) {
-                    Inventory inv = chestAccounts.get(player.getName());
-                    if (inv != null && inv.getContents().length != 0) {
-                        openInvs.put(player.getName(), "");
-                        player.openInventory(inv);
-                    } else {
-                        inv = Bukkit.createInventory(player, 54, player.getName());
+                
+                Inventory inv;
+                if (useSQL) {
+                    inv = getInventory(player, "");
+                } else {
+                    inv = chestAccounts.get(player.getName());
+                }
+                if (inv != null && inv.getContents().length != 0) {
+                    openInvs.put(player.getName(), "");
+                    player.openInventory(inv);
+                } else {
+                    inv = Bukkit.createInventory(player, 54, player.getName());
+                    if (!useSQL) {
                         chestAccounts.put(player.getName(), inv);
                         setAccounts(chestAccounts);
-                        openInvs.put(player.getName(), "");
-                        player.openInventory(inv);
                     }
+                    openInvs.put(player.getName(), "");
+                    player.openInventory(inv);
                 }
+                
             } else {
-                boolean allowed = true;
+                
                 String network = args[0];
                 if (!isNetwork(network)) {
                     player.sendMessage(ChatColor.RED + "There is no ChestBank network called " + ChatColor.WHITE + args[0]);
@@ -189,28 +237,34 @@ public class ChestBank extends JavaPlugin {
                 }
                 if (useNetworkPerms == true && (!player.hasPermission("chestbank.use.networks." + network.toLowerCase()) && !player.hasPermission("chestbank.use.networks.*"))) {
                     player.sendMessage(ChatColor.RED + "You are not allowed to use ChestBanks on the " + ChatColor.WHITE + network + ChatColor.RED + " network!");
-                    allowed = false;
+                    return false;
                 } else if (!useNetworkPerms && !player.hasPermission("chestbank.use.networks")) {
                     player.sendMessage(ChatColor.RED + "You are not allowed to use ChestBanks on named networks!");
-                    allowed = false;
+                    return false;
                 } else if (gotVault && gotEconomy && useFee != 0 && !player.hasPermission("chestbank.free.use.networks")) {
                     if (vault.economy.getBalance(player.getName()) < useFee) {
                         player.sendMessage(ChatColor.RED + "You cannot afford the transaction fee of " + ChatColor.WHITE + vault.economy.format(useFee) + ChatColor.RED + "!");
-                        allowed = false;
+                        return false;
                     }
                 }
-                if (allowed) {
-                    Inventory inv = chestAccounts.get(network + ">>" + player.getName());
-                    if (inv != null && inv.getContents().length != 0) {
-                        openInvs.put(player.getName(), network);
-                        player.openInventory(inv);
-                    } else {
-                        inv = Bukkit.createInventory(player, 54, player.getName());
+                
+                Inventory inv;
+                if (useSQL) {
+                    inv = getInventory(player, network);
+                } else {
+                    inv = chestAccounts.get(network + ">>" + player.getName());
+                }
+                if (inv != null && inv.getContents().length != 0) {
+                    openInvs.put(player.getName(), network);
+                    player.openInventory(inv);
+                } else {
+                    inv = Bukkit.createInventory(player, 54, player.getName());
+                    if (!useSQL) {
                         chestAccounts.put(network + ">>" + player.getName(), inv);
                         setAccounts(chestAccounts);
-                        openInvs.put(player.getName(), network);
-                        player.openInventory(inv);
                     }
+                    openInvs.put(player.getName(), network);
+                    player.openInventory(inv);
                 }
             }
             return true;
@@ -546,11 +600,17 @@ public class ChestBank extends JavaPlugin {
             if ("".equals(account)) {
                 account = target.getName();
             }
-            if (chestAccounts.get(account) != null) {
+            if (!useSQL && chestAccounts.get(account) != null) {
                 Inventory lc = chestAccounts.get(account);
                 player.openInventory(lc);
-            } else {
+            } else if (!useSQL) {
                 player.sendMessage(ChatColor.RED + target.getName() + " does not have a ChestBank account" + accountFail + "!");
+            } else {
+                if (args.length == 3) {
+                    player.openInventory(getInventory(target, player, args[2]));
+                } else {
+                    player.openInventory(getInventory(target, player, ""));
+                }
             }
             return true;
         }
@@ -871,5 +931,87 @@ public class ChestBank extends JavaPlugin {
             getLogger().severe("Could not save " + bankFile);
             ex.printStackTrace();
         }
+    }
+    
+    private void convertYMLtoSQL() {
+        
+        getLogger().info("Converting YML Database to SQL!");
+        
+        banksConfig = getChestBanks();
+        HashMap<String, Inventory> chests = getNewAccounts();
+        
+        int counter = 0;
+        int totalCounter = 0;
+        List<String[]> values = new ArrayList<String[]>();
+        
+        for (String playerName : chests.keySet()) {
+            
+            String network = "";
+
+            if (playerName.contains(">>")) {
+                String[] split = playerName.split(">>");
+                network = split[0];
+                playerName = split[1];
+            }
+
+            String inv = ItemSerialization.saveInventory(chests.get(playerName));
+
+            values.add(new String[]{playerName, network, inv});
+            
+            counter++;
+            totalCounter++;
+            
+            if (counter == 333 || totalCounter == chests.size()) {
+                sql.insert("", "ChestAccounts", new String[]{"playerName", "network", "inventory"}, values);
+                values.clear();
+                getLogger().info("  Progress: " + totalCounter + "/" + chests.size());
+                counter = 0;
+            }
+            
+        }
+        
+        
+    }
+    
+    protected Inventory getInventory(Player player, String network) {
+        String playerName = player.getName();
+        
+        if (!network.equals(""))
+            playerName = network + ">" + playerName;
+        
+        Inventory inv = Bukkit.createInventory(player, 54, playerName);
+        HashMap<Integer, HashMap<String, Object>> results = sql.select("inventory", "ChestAccounts", "playerName = '"+player.getName()+"' AND network = '"+network+"'", null, null);
+        for (int i = 0; i < results.size(); i++) {
+            HashMap<String, Object> result = results.get(i);
+            String inventory = result.get("inventory").toString();
+            try {
+                inv.setContents( ItemSerialization.loadInventory(inventory) );
+            } catch (InvalidConfigurationException ex) {
+                Logger.getLogger(ChestBank.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        return inv;
+    }
+    
+    protected Inventory getInventory(OfflinePlayer target, Player player, String network) {
+        String playerName = target.getName();
+
+        if (!network.equals(""))
+            playerName = network + ">" + playerName;
+        
+        Inventory inv = Bukkit.createInventory(player, 54, playerName);
+        HashMap<Integer, HashMap<String, Object>> results = sql.select("inventory", "ChestAccounts", "playerName = '"+target.getName()+"' AND network = '"+network+"'", null, null);
+        for (int i = 0; i < results.size(); i++) {
+            HashMap<String, Object> result = results.get(i);
+            String inventory = result.get("inventory").toString();
+            try {
+                inv.setContents( ItemSerialization.loadInventory(inventory) );
+            } catch (InvalidConfigurationException ex) {
+                Logger.getLogger(ChestBank.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        return inv;
     }
 }
