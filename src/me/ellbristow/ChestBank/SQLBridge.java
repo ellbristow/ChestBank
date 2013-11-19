@@ -31,10 +31,12 @@ public class SQLBridge {
     
     public synchronized Connection open() {    	
         try {
+            Class.forName("org.sqlite.JDBC");
             conn = DriverManager.getConnection("jdbc:sqlite:" + sqlFile.getAbsolutePath());
             return conn;
         } catch (Exception e) {
             plugin.getLogger().severe(e.getMessage());
+            plugin.getPluginLoader().disablePlugin(plugin);
             e.printStackTrace();
         }
         return null;
